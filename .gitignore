@@ -1,0 +1,11 @@
+/target/
+/src-tauri/target/
+/src-tauri/gen/schemas/
+# adb не коммитим — пользователь кладёт его сам
+/platform-tools/
+*.log
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+build.log

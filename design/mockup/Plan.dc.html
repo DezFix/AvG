@@ -1,0 +1,145 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<title>AvG — План оптимизации</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=Unbounded:wght@600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+body{margin:0;background:#0D1014}
+a{color:#7CE8B8}a:hover{color:#A8F1D0}
+</style>
+</helmet>
+<div style="min-height: 1080px; background: #0D1014; color: #E8EBF0; font-family: Manrope, system-ui, sans-serif; display: flex; flex-wrap: wrap;">
+
+<nav aria-label="Разделы" style="flex: 1 1 220px; box-sizing: border-box; background: #12151A; border-right: 1px solid #222831; padding: 24px 14px; display: flex; flex-direction: column; gap: 4px;">
+<div style="display: flex; align-items: center; gap: 10px; padding: 0 10px 22px;">
+<div style="width: 34px; height: 34px; border-radius: 10px; background: {{accent}}; display: flex; align-items: center; justify-content: center; color: #06140D;"><svg aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M13 2 3 14h9l-1 8 10-12h-9l1-8z"></path></svg></div>
+<div style="font-family: Unbounded, Manrope, sans-serif; font-weight: 700; font-size: 20px; letter-spacing: 0.5px;">AvG</div>
+</div>
+<a href="Main.dc.html" style="display: flex; align-items: center; gap: 12px; min-height: 44px; padding: 0 12px; border-radius: 10px; background: #1D232B; color: #FFFFFF; text-decoration: none; font-weight: 700; font-size: 14px;"><svg aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="{{accent}}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M13 2 3 14h9l-1 8 10-12h-9l1-8z"></path></svg>Оптимизация</a>
+<a href="Apps.dc.html" style="display: flex; align-items: center; gap: 12px; min-height: 44px; padding: 0 12px; border-radius: 10px; color: #B9C1CC; text-decoration: none; font-weight: 600; font-size: 14px;"><svg aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7" rx="1.5"></rect><rect x="14" y="3" width="7" height="7" rx="1.5"></rect><rect x="3" y="14" width="7" height="7" rx="1.5"></rect><rect x="14" y="14" width="7" height="7" rx="1.5"></rect></svg>Приложения</a>
+<a href="#" style="display: flex; align-items: center; gap: 12px; min-height: 44px; padding: 0 12px; border-radius: 10px; color: #B9C1CC; text-decoration: none; font-weight: 600; font-size: 14px;"><svg aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path></svg>APK и файлы</a>
+<a href="#" style="display: flex; align-items: center; gap: 12px; min-height: 44px; padding: 0 12px; border-radius: 10px; color: #B9C1CC; text-decoration: none; font-weight: 600; font-size: 14px;"><svg aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="16" rx="2"></rect><path d="m7 9 3 3-3 3"></path><path d="M13 15h4"></path></svg>Консоль ADB</a>
+<a href="History.dc.html" style="display: flex; align-items: center; gap: 12px; min-height: 44px; padding: 0 12px; border-radius: 10px; color: #B9C1CC; text-decoration: none; font-weight: 600; font-size: 14px;"><svg aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 3-6.7L3 8"></path><path d="M3 3v5h5"></path><path d="M12 7v5l3 2"></path></svg>История и откат</a>
+<a href="#" style="display: flex; align-items: center; gap: 12px; min-height: 44px; padding: 0 12px; border-radius: 10px; color: #B9C1CC; text-decoration: none; font-weight: 600; font-size: 14px;"><svg aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 6h9M17 6h3M4 12h3M11 12h9M4 18h11M19 18h1"></path><circle cx="15" cy="6" r="2"></circle><circle cx="9" cy="12" r="2"></circle><circle cx="17" cy="18" r="2"></circle></svg>Настройки</a>
+<div style="flex-grow: 1; min-height: 24px;"></div>
+<div style="border: 1px solid #262D36; border-radius: 12px; padding: 12px; display: flex; align-items: center; gap: 10px;">
+<div style="width: 8px; height: 8px; border-radius: 4px; background: {{accent}};"></div>
+<div style="display: flex; flex-direction: column; gap: 2px;"><span style="font-size: 13px; font-weight: 700;">Redmi Note 8</span><span style="font-size: 12px; color: #98A2B0;">USB · отладка включена</span></div>
+</div>
+</nav>
+
+<main style="flex: 999 1 560px; min-width: 0; box-sizing: border-box; padding: 32px 40px 40px; display: flex; flex-direction: column; gap: 22px;">
+<header style="display: flex; flex-wrap: wrap; justify-content: space-between; align-items: flex-end; gap: 16px;">
+<div style="display: flex; flex-direction: column; gap: 6px;">
+<a href="Main.dc.html" style="font-size: 13px; font-weight: 700; text-decoration: none;">← Назад к сканированию</a>
+<h1 style="margin: 0; font-size: 28px; font-weight: 800; letter-spacing: -0.3px;">План оптимизации</h1>
+<p style="margin: 0; color: #98A2B0; font-size: 15px;">Профиль «Слабый телефон». Снимите галочку с того, что трогать не нужно.</p>
+</div>
+<div style="display: flex; flex-wrap: wrap; gap: 8px;">
+<span style="font-size: 13px; font-weight: 700; padding: 8px 12px; border-radius: 999px; background: rgba(61,220,151,0.12); color: #6BE6AF;">Безопасно</span>
+<span style="font-size: 13px; font-weight: 700; padding: 8px 12px; border-radius: 999px; background: rgba(245,181,68,0.12); color: #F5C063;">Средний риск</span>
+<span style="font-size: 13px; font-weight: 700; padding: 8px 12px; border-radius: 999px; background: rgba(255,138,122,0.12); color: #FF9B8D;">Рискованно</span>
+</div>
+</header>
+
+<sc-for list="{{groups}}" as="g" hint-placeholder-count="4">
+<section style="background: #14181E; border: 1px solid #222831; border-radius: 18px; overflow: hidden;">
+<div style="display: flex; justify-content: space-between; align-items: center; padding: 16px 22px; border-bottom: 1px solid #222831;">
+<h2 style="margin: 0; font-size: 16px; font-weight: 800;">{{g.title}}</h2>
+<span style="font-size: 13px; color: #98A2B0; font-weight: 600;">{{g.summary}}</span>
+</div>
+<sc-for list="{{g.items}}" as="it" hint-placeholder-count="3">
+<label style="{{it.rowStyle}}">
+<input type="checkbox" checked="{{it.checked}}" onChange="{{it.toggle}}" style="width: 20px; height: 20px; margin: 2px 0 0; accent-color: {{accent}}; flex-shrink: 0; cursor: pointer;">
+<div style="flex: 1 1 auto; min-width: 0; display: flex; flex-direction: column; gap: 5px;">
+<span style="font-size: 15px; font-weight: 700;">{{it.title}}</span>
+<span style="font-size: 13px; color: #A3ACB8; line-height: 1.45;">{{it.desc}}</span>
+<code style="font-family: 'JetBrains Mono', monospace; font-size: 12px; color: #8FA0B4; overflow-wrap: anywhere;">{{it.cmd}}</code>
+</div>
+<span style="{{it.badge}}">{{it.risk}}</span>
+</label>
+</sc-for>
+</section>
+</sc-for>
+
+<div style="position: sticky; bottom: 16px; background: #1A1F26; border: 1px solid #2B323C; border-radius: 16px; padding: 14px 16px 14px 22px; display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 14px;">
+<div style="display: flex; flex-direction: column; gap: 3px;">
+<span style="font-size: 15px; font-weight: 800;">Выбрано {{selected}} из {{total}}</span>
+<span style="font-size: 13px; color: #98A2B0;">Займёт около 5 минут · всё можно откатить</span>
+</div>
+<div style="display: flex; gap: 10px; flex-wrap: wrap;">
+<button type="button" onClick="{{selectSafe}}" style="min-height: 48px; padding: 0 18px; border-radius: 12px; border: 1px solid #343C47; background: transparent; color: #E8EBF0; font: 700 14px Manrope, sans-serif; cursor: pointer;">Только безопасное</button>
+<a href="Apply.dc.html" style="min-height: 48px; padding: 0 24px; border-radius: 12px; background: {{accent}}; color: #06140D; text-decoration: none; font-weight: 800; font-size: 15px; display: flex; align-items: center;">Применить изменения</a>
+</div>
+</div>
+</main>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"accent":{"editor":"color","default":"#3DDC97","options":["#3DDC97","#5AB2FF","#B69CFF","#F5B544"]},"$preview":{"width":1280,"height":1080}}'>
+class Component extends DCLogic {
+  constructor(props) {
+    super(props);
+    this.state = { off: { res: true } };
+  }
+  renderVals() {
+    const accent = this.props.accent ?? '#3DDC97';
+    const B = {
+      safe: ['Безопасно', 'rgba(61,220,151,0.12)', '#6BE6AF'],
+      mid: ['Средний риск', 'rgba(245,181,68,0.12)', '#F5C063'],
+      high: ['Рискованно', 'rgba(255,138,122,0.12)', '#FF9B8D']
+    };
+    const data = [
+      { title: 'Реклама и мусор MIUI', items: [
+        { id: 'msa', title: 'Рекламная служба MIUI (MSA)', desc: 'Показывает рекламу в системных приложениях и тратит память.', cmd: 'pm uninstall -k --user 0 com.miui.msa.global', r: 'safe' },
+        { id: 'analytics', title: 'Аналитика Xiaomi', desc: 'Сбор и отправка статистики использования.', cmd: 'pm uninstall -k --user 0 com.miui.analytics', r: 'safe' },
+        { id: 'fb', title: 'Предустановленные службы Facebook (3)', desc: 'Работают в фоне, даже если Facebook не установлен.', cmd: 'pm uninstall -k --user 0 com.facebook.services …', r: 'safe' },
+        { id: 'browser', title: 'Mi Браузер', desc: 'Удаляйте, только если пользуетесь другим браузером.', cmd: 'pm uninstall -k --user 0 com.mi.globalbrowser', r: 'mid' }
+      ]},
+      { title: 'Интерфейс', items: [
+        { id: 'anim', title: 'Ускорить анимации в 2 раза', desc: 'Интерфейс ощущается заметно быстрее на слабом железе.', cmd: 'settings put global window_animation_scale 0.5  (+2)', r: 'safe' }
+      ]},
+      { title: 'Производительность', items: [
+        { id: 'compile', title: 'Скомпилировать приложения', desc: 'Приложения запускаются быстрее. Займёт 3–10 минут.', cmd: 'cmd package compile -m speed-profile -a', r: 'safe' },
+        { id: 'bg', title: 'Запретить фон 6 редким приложениям', desc: 'Уведомления от них могут приходить с задержкой.', cmd: 'cmd appops set <pkg> RUN_ANY_IN_BACKGROUND ignore', r: 'mid' },
+        { id: 'res', title: 'Снизить разрешение экрана до 720p', desc: 'Меньше нагрузка на видеочип, но картинка мягче.', cmd: 'wm size 720x1520 && wm density 300', r: 'high' }
+      ]},
+      { title: 'Сеть и энергия', items: [
+        { id: 'scan', title: 'Отключить фоновый поиск Wi-Fi и Bluetooth', desc: 'Экономит заряд, геолокация станет чуть менее точной.', cmd: 'settings put global wifi_scan_always_enabled 0', r: 'safe' },
+        { id: 'dns', title: 'Блокировка рекламы через Private DNS', desc: 'Режет рекламу во всех приложениях без VPN.', cmd: 'settings put global private_dns_specifier dns.adguard-dns.com', r: 'safe' }
+      ]}
+    ];
+    const off = this.state.off;
+    let total = 0, selected = 0;
+    const groups = data.map((g) => {
+      let on = 0;
+      const items = g.items.map((it) => {
+        const checked = !off[it.id];
+        total++; if (checked) { selected++; on++; }
+        const b = B[it.r];
+        return {
+          title: it.title, desc: it.desc, cmd: it.cmd, risk: b[0], checked,
+          badge: 'flex-shrink:0;align-self:flex-start;font-size:12px;font-weight:700;padding:4px 10px;border-radius:999px;background:' + b[1] + ';color:' + b[2] + ';',
+          rowStyle: 'display:flex;gap:16px;align-items:flex-start;padding:16px 22px;border-top:1px solid #1E242C;cursor:pointer;' + (checked ? '' : 'opacity:0.55;'),
+          toggle: () => this.setState({ off: { ...this.state.off, [it.id]: checked } })
+        };
+      });
+      return { title: g.title, items, summary: on + ' из ' + items.length };
+    });
+    const selectSafe = () => {
+      const o = {};
+      data.forEach((g) => g.items.forEach((it) => { if (it.r !== 'safe') o[it.id] = true; }));
+      this.setState({ off: o });
+    };
+    return { accent, groups, total, selected, selectSafe };
+  }
+}
+</script>
+</body>
+</html>

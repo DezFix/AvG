@@ -1,0 +1,134 @@
+# Xiaomi / Redmi / POCO (MIUI и HyperOS).
+
+[[tweak]]
+id = "xiaomi.msa"
+title = "Рекламная служба MIUI (MSA)"
+description = "Показывает рекламу в системных приложениях Xiaomi и постоянно работает в фоне."
+category = "bloat"
+risk = "safe"
+profiles = ["weak", "battery", "privacy"]
+vendors = ["xiaomi"]
+action = { type = "remove_packages", packages = ["com.miui.msa.global", "com.miui.systemAdSolution"] }
+
+[[tweak]]
+id = "xiaomi.analytics"
+title = "Аналитика Xiaomi"
+description = "Сбор и отправка статистики использования телефона."
+category = "privacy"
+risk = "safe"
+profiles = ["weak", "battery", "privacy"]
+vendors = ["xiaomi"]
+action = { type = "remove_packages", packages = ["com.miui.analytics"] }
+
+[[tweak]]
+id = "xiaomi.daemon"
+title = "MIUI Daemon"
+description = "Фоновая служба сбора диагностических данных."
+category = "privacy"
+risk = "safe"
+profiles = ["weak", "privacy"]
+vendors = ["xiaomi"]
+action = { type = "remove_packages", packages = ["com.miui.daemon"] }
+
+[[tweak]]
+id = "xiaomi.bugreport"
+title = "Отчёты об ошибках MIUI"
+description = "Отправка отчётов об ошибках в Xiaomi."
+category = "privacy"
+risk = "safe"
+profiles = ["weak", "privacy"]
+vendors = ["xiaomi"]
+action = { type = "remove_packages", packages = ["com.miui.bugreport"] }
+
+[[tweak]]
+id = "xiaomi.hybrid"
+title = "Быстрые приложения (Quick Apps)"
+description = "Платформа мини-приложений, которая держит службы в фоне и показывает рекламу."
+category = "bloat"
+risk = "safe"
+profiles = ["weak", "battery", "privacy"]
+vendors = ["xiaomi"]
+action = { type = "remove_packages", packages = ["com.miui.hybrid", "com.miui.hybrid.accessory"] }
+
+[[tweak]]
+id = "xiaomi.wallpaper_carousel"
+title = "Карусель обоев"
+description = "Загружает обои с рекламой на экран блокировки и тратит трафик."
+category = "bloat"
+risk = "safe"
+profiles = ["weak", "battery", "privacy"]
+vendors = ["xiaomi"]
+action = { type = "remove_packages", packages = ["com.miui.android.fashiongallery"] }
+
+[[tweak]]
+id = "xiaomi.miservice"
+title = "Службы и обратная связь"
+description = "Приложение поддержки Xiaomi. Удалите, если не обращаетесь в поддержку через телефон."
+category = "bloat"
+risk = "safe"
+profiles = ["weak"]
+vendors = ["xiaomi"]
+action = { type = "remove_packages", packages = ["com.miui.miservice"] }
+
+[[tweak]]
+id = "xiaomi.games"
+title = "Игры Xiaomi"
+description = "Каталог игр с рекламой. Ускоритель игр не затрагивается."
+category = "bloat"
+risk = "safe"
+profiles = ["weak"]
+vendors = ["xiaomi"]
+action = { type = "remove_packages", packages = ["com.xiaomi.glgm"] }
+
+[[tweak]]
+id = "xiaomi.videoplayer"
+title = "Mi Видео"
+description = "Видеоплеер с рекламой. Галерея будет открывать видео другим плеером."
+category = "bloat"
+risk = "medium"
+profiles = ["weak"]
+vendors = ["xiaomi"]
+action = { type = "remove_packages", packages = ["com.miui.videoplayer"] }
+
+[[tweak]]
+id = "xiaomi.music"
+title = "Mi Музыка"
+description = "Музыкальный плеер с рекламой. Удалите, если слушаете музыку в другом приложении."
+category = "bloat"
+risk = "medium"
+profiles = ["weak"]
+vendors = ["xiaomi"]
+action = { type = "remove_packages", packages = ["com.miui.player"] }
+
+[[tweak]]
+id = "xiaomi.browser"
+title = "Mi Браузер"
+description = "Удаляйте, только если у вас установлен другой браузер (Chrome, Firefox и т.п.)."
+category = "bloat"
+risk = "medium"
+profiles = ["weak", "privacy"]
+vendors = ["xiaomi"]
+default_on = false
+action = { type = "remove_packages", packages = ["com.mi.globalbrowser", "com.android.browser"] }
+
+[[tweak]]
+id = "xiaomi.getapps"
+title = "GetApps (магазин Xiaomi)"
+description = "Магазин приложений с рекламой. На некоторых прошивках через него обновляются системные приложения Xiaomi."
+category = "bloat"
+risk = "medium"
+profiles = ["weak", "privacy"]
+vendors = ["xiaomi"]
+default_on = false
+action = { type = "remove_packages", packages = ["com.xiaomi.mipicks"] }
+
+[[tweak]]
+id = "xiaomi.cleaner"
+title = "Очистка MIUI"
+description = "Встроенный «очиститель» с рекламой. Кнопка очистки в приложении «Безопасность» перестанет работать."
+category = "bloat"
+risk = "medium"
+profiles = ["weak"]
+vendors = ["xiaomi"]
+default_on = false
+action = { type = "remove_packages", packages = ["com.miui.cleanmaster"] }

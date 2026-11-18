@@ -1,0 +1,75 @@
+# Предустановленные приложения Google и партнёров, встречающиеся у разных производителей.
+
+[[tweak]]
+id = "partners.facebook"
+title = "Скрытые службы Facebook"
+description = "Предустановленные службы Facebook работают в фоне, даже если самого Facebook нет. Приложение Facebook из Play Маркета продолжит работать."
+category = "bloat"
+risk = "safe"
+profiles = ["weak", "battery", "privacy"]
+action = { type = "remove_packages", packages = ["com.facebook.services", "com.facebook.system", "com.facebook.appmanager"] }
+
+[[tweak]]
+id = "partners.netflix"
+title = "Служба активации Netflix"
+description = "Партнёрская служба производителя. Само приложение Netflix не затрагивается."
+category = "bloat"
+risk = "safe"
+profiles = ["weak", "privacy"]
+action = { type = "remove_packages", packages = ["com.netflix.partner.activation"] }
+
+[[tweak]]
+id = "google.movies"
+title = "Google Play Фильмы"
+description = "Устаревшее приложение, которое Google заменил на Google TV."
+category = "bloat"
+risk = "safe"
+profiles = ["weak"]
+action = { type = "remove_packages", packages = ["com.google.android.videos"] }
+
+[[tweak]]
+id = "google.play_music"
+title = "Google Play Музыка"
+description = "Сервис закрыт в 2020 году, приложение больше не работает."
+category = "bloat"
+risk = "safe"
+profiles = ["weak"]
+action = { type = "remove_packages", packages = ["com.google.android.music"] }
+
+[[tweak]]
+id = "google.news"
+title = "Google Новости"
+description = "Удалите, если не читаете новости в этом приложении."
+category = "bloat"
+risk = "safe"
+profiles = ["weak"]
+action = { type = "remove_packages", packages = ["com.google.android.apps.magazines"] }
+
+[[tweak]]
+id = "google.books"
+title = "Google Play Книги"
+description = "Удалите, если не читаете книги через Google."
+category = "bloat"
+risk = "safe"
+profiles = ["weak"]
+action = { type = "remove_packages", packages = ["com.google.android.apps.books"] }
+
+[[tweak]]
+id = "google.meet"
+title = "Google Meet (Duo)"
+description = "Видеозвонки Google. На некоторых телефонах встроены в звонилку — удаляйте, только если не пользуетесь."
+category = "bloat"
+risk = "medium"
+profiles = ["weak"]
+default_on = false
+action = { type = "remove_packages", packages = ["com.google.android.apps.tachyon"] }
+
+[[tweak]]
+id = "google.youtube_music"
+title = "YouTube Music"
+description = "Удалите, если слушаете музыку в другом приложении."
+category = "bloat"
+risk = "medium"
+profiles = ["weak"]
+default_on = false
+action = { type = "remove_packages", packages = ["com.google.android.apps.youtube.music"] }

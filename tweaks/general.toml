@@ -1,0 +1,114 @@
+# Общие твики для любых Android-устройств.
+# Формат описан в docs/TWEAKS.md
+
+[[tweak]]
+id = "general.animations"
+title = "Ускорить анимации в 2 раза"
+description = "Интерфейс ощущается заметно быстрее на слабом железе. Можно вернуть в любой момент."
+category = "ui"
+risk = "safe"
+profiles = ["weak"]
+action = { type = "settings", values = [
+  { namespace = "global", key = "window_animation_scale", value = "0.5" },
+  { namespace = "global", key = "transition_animation_scale", value = "0.5" },
+  { namespace = "global", key = "animator_duration_scale", value = "0.5" },
+] }
+
+[[tweak]]
+id = "general.compile"
+title = "Скомпилировать приложения"
+description = "Android заранее переведёт приложения в машинный код: они будут быстрее запускаться. Занимает 3–15 минут, телефон в это время может греться."
+category = "performance"
+risk = "safe"
+profiles = ["weak"]
+min_sdk = 24
+action = { type = "commands", apply = ["cmd package compile -m speed-profile -a"], revert = ["cmd package compile --reset -a"] }
+
+[[tweak]]
+id = "general.trim_caches"
+title = "Очистить кэш всех приложений"
+description = "Освобождает место в памяти телефона. Данные и вход в аккаунты не затрагиваются, кэш со временем наполнится снова."
+category = "performance"
+risk = "safe"
+profiles = ["weak"]
+action = { type = "commands", apply = ["pm trim-caches 999G"] }
+
+[[tweak]]
+id = "general.wifi_scan"
+title = "Отключить фоновый поиск Wi-Fi"
+description = "Телефон перестанет постоянно сканировать сети, даже когда Wi-Fi выключен. Геолокация станет чуть менее точной."
+category = "battery"
+risk = "safe"
+profiles = ["weak", "battery", "privacy"]
+action = { type = "settings", values = [
+  { namespace = "global", key = "wifi_scan_always_enabled", value = "0" },
+] }
+
+[[tweak]]
+id = "general.ble_scan"
+title = "Отключить фоновый поиск Bluetooth"
+description = "Телефон перестанет искать Bluetooth-устройства, когда Bluetooth выключен."
+category = "battery"
+risk = "safe"
+profiles = ["weak", "battery", "privacy"]
+action = { type = "settings", values = [
+  { namespace = "global", key = "ble_scan_always_enabled", value = "0" },
+] }
+
+[[tweak]]
+id = "general.wifi_wakeup"
+title = "Не включать Wi-Fi автоматически"
+description = "Wi-Fi не будет сам включаться рядом с сохранёнными сетями."
+category = "battery"
+risk = "safe"
+profiles = ["battery"]
+min_sdk = 26
+action = { type = "settings", values = [
+  { namespace = "global", key = "wifi_wakeup_enabled", value = "0" },
+] }
+
+[[tweak]]
+id = "general.mobile_data_always_on"
+title = "Не держать мобильный интернет при Wi-Fi"
+description = "Мобильная сеть не будет оставаться активной, когда телефон подключён к Wi-Fi. Переключение сетей может занимать на секунду дольше."
+category = "battery"
+risk = "safe"
+profiles = ["weak", "battery"]
+action = { type = "settings", values = [
+  { namespace = "global", key = "mobile_data_always_on", value = "0" },
+] }
+
+[[tweak]]
+id = "general.adaptive_battery"
+title = "Включить адаптивную батарею"
+description = "Android будет ограничивать редко используемые приложения в фоне."
+category = "battery"
+risk = "safe"
+profiles = ["battery"]
+min_sdk = 28
+action = { type = "settings", values = [
+  { namespace = "global", key = "adaptive_battery_management_enabled", value = "1" },
+] }
+
+[[tweak]]
+id = "general.private_dns"
+title = "Блокировка рекламы через Private DNS"
+description = "Включает AdGuard DNS: реклама и трекеры режутся во всех приложениях без VPN. В некоторых публичных Wi-Fi сетях DNS может не работать — тогда откатите это изменение."
+category = "network"
+risk = "safe"
+profiles = ["weak", "privacy"]
+min_sdk = 28
+action = { type = "settings", values = [
+  { namespace = "global", key = "private_dns_specifier", value = "dns.adguard-dns.com" },
+  { namespace = "global", key = "private_dns_mode", value = "hostname" },
+] }
+
+[[tweak]]
+id = "general.screen_scale"
+title = "Снизить разрешение экрана на 25%"
+description = "Меньше нагрузка на видеочип в играх и интерфейсе, но картинка станет мягче, а элементы — крупнее. Только для совсем слабых телефонов."
+category = "performance"
+risk = "high"
+profiles = ["weak"]
+default_on = false
+action = { type = "screen_scale", factor = 0.75 }

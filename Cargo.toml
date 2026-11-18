@@ -1,0 +1,23 @@
+[workspace]
+resolver = "2"
+members = ["crates/avg-core", "src-tauri"]
+
+[workspace.package]
+version = "0.1.0"
+edition = "2021"
+license = "GPL-3.0-or-later"
+authors = ["DezFix"]
+repository = "https://github.com/DezFix/AvG"
+
+[workspace.dependencies]
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+toml = "0.8"
+thiserror = "2"
+
+[profile.release]
+codegen-units = 1
+lto = true
+opt-level = "s"
+panic = "abort"
+strip = true

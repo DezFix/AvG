@@ -1,0 +1,93 @@
+# Samsung (One UI).
+
+[[tweak]]
+id = "samsung.free"
+title = "Samsung Free / Daily"
+description = "Лента новостей и рекламы слева от рабочего стола."
+category = "bloat"
+risk = "safe"
+profiles = ["weak", "battery", "privacy"]
+vendors = ["samsung"]
+action = { type = "remove_packages", packages = ["com.samsung.android.app.spage"] }
+
+[[tweak]]
+id = "samsung.global_goals"
+title = "Samsung Global Goals"
+description = "Благотворительное приложение с рекламой в обоях."
+category = "bloat"
+risk = "safe"
+profiles = ["weak", "battery"]
+vendors = ["samsung"]
+action = { type = "remove_packages", packages = ["com.samsung.sree"] }
+
+[[tweak]]
+id = "samsung.tips"
+title = "Советы Samsung"
+description = "Приложение с подсказками и уведомлениями."
+category = "bloat"
+risk = "safe"
+profiles = ["weak"]
+vendors = ["samsung"]
+action = { type = "remove_packages", packages = ["com.samsung.android.app.tips"] }
+
+[[tweak]]
+id = "samsung.ar"
+title = "AR Zone и AR Doodle"
+description = "Развлекательные AR-функции камеры."
+category = "bloat"
+risk = "safe"
+profiles = ["weak"]
+vendors = ["samsung"]
+action = { type = "remove_packages", packages = ["com.samsung.android.arzone", "com.samsung.android.ardrawing"] }
+
+[[tweak]]
+id = "samsung.kids"
+title = "Samsung Kids (установщик)"
+description = "Удалите, если не пользуетесь детским режимом."
+category = "bloat"
+risk = "safe"
+profiles = ["weak"]
+vendors = ["samsung"]
+action = { type = "remove_packages", packages = ["com.samsung.android.kidsinstaller"] }
+
+[[tweak]]
+id = "samsung.bixby"
+title = "Bixby"
+description = "Голосовой ассистент Samsung. Боковая кнопка перестанет вызывать Bixby — назначьте ей другое действие в настройках."
+category = "bloat"
+risk = "medium"
+profiles = ["weak", "privacy"]
+vendors = ["samsung"]
+action = { type = "remove_packages", packages = ["com.samsung.android.bixby.agent", "com.samsung.android.bixby.wakeup", "com.samsung.android.bixbyvision.framework"] }
+
+[[tweak]]
+id = "samsung.diagnostics"
+title = "Диагностика и сбор данных Samsung"
+description = "Фоновые службы мониторинга качества и диагностики."
+category = "privacy"
+risk = "medium"
+profiles = ["weak", "privacy"]
+vendors = ["samsung"]
+action = { type = "remove_packages", packages = ["com.samsung.android.dqagent", "com.sec.android.diagmonagent"] }
+
+[[tweak]]
+id = "samsung.ar_emoji"
+title = "AR Emoji"
+description = "Анимированные аватары. Удаление может убрать соответствующие стикеры из клавиатуры."
+category = "bloat"
+risk = "medium"
+profiles = ["weak"]
+vendors = ["samsung"]
+default_on = false
+action = { type = "remove_packages", packages = ["com.samsung.android.aremoji", "com.samsung.android.aremojieditor"] }
+
+[[tweak]]
+id = "samsung.game_launcher"
+title = "Game Launcher"
+description = "Каталог игр Samsung. Вместе с ним может пропасть панель Game Booster в играх."
+category = "bloat"
+risk = "medium"
+profiles = ["weak"]
+vendors = ["samsung"]
+default_on = false
+action = { type = "remove_packages", packages = ["com.samsung.android.game.gamehome"] }

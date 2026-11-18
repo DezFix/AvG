@@ -1,0 +1,123 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<title>AvG — История и откат</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=Unbounded:wght@600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+body{margin:0;background:#0D1014}
+a{color:#7CE8B8}a:hover{color:#A8F1D0}
+</style>
+</helmet>
+<div style="min-height: 820px; background: #0D1014; color: #E8EBF0; font-family: Manrope, system-ui, sans-serif; display: flex; flex-wrap: wrap;">
+
+<nav aria-label="Разделы" style="flex: 1 1 220px; box-sizing: border-box; background: #12151A; border-right: 1px solid #222831; padding: 24px 14px; display: flex; flex-direction: column; gap: 4px;">
+<div style="display: flex; align-items: center; gap: 10px; padding: 0 10px 22px;">
+<div style="width: 34px; height: 34px; border-radius: 10px; background: {{accent}}; display: flex; align-items: center; justify-content: center; color: #06140D;"><svg aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M13 2 3 14h9l-1 8 10-12h-9l1-8z"></path></svg></div>
+<div style="font-family: Unbounded, Manrope, sans-serif; font-weight: 700; font-size: 20px; letter-spacing: 0.5px;">AvG</div>
+</div>
+<a href="Main.dc.html" style="display: flex; align-items: center; gap: 12px; min-height: 44px; padding: 0 12px; border-radius: 10px; color: #B9C1CC; text-decoration: none; font-weight: 600; font-size: 14px;"><svg aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M13 2 3 14h9l-1 8 10-12h-9l1-8z"></path></svg>Оптимизация</a>
+<a href="Apps.dc.html" style="display: flex; align-items: center; gap: 12px; min-height: 44px; padding: 0 12px; border-radius: 10px; color: #B9C1CC; text-decoration: none; font-weight: 600; font-size: 14px;"><svg aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7" rx="1.5"></rect><rect x="14" y="3" width="7" height="7" rx="1.5"></rect><rect x="3" y="14" width="7" height="7" rx="1.5"></rect><rect x="14" y="14" width="7" height="7" rx="1.5"></rect></svg>Приложения</a>
+<a href="#" style="display: flex; align-items: center; gap: 12px; min-height: 44px; padding: 0 12px; border-radius: 10px; color: #B9C1CC; text-decoration: none; font-weight: 600; font-size: 14px;"><svg aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path></svg>APK и файлы</a>
+<a href="#" style="display: flex; align-items: center; gap: 12px; min-height: 44px; padding: 0 12px; border-radius: 10px; color: #B9C1CC; text-decoration: none; font-weight: 600; font-size: 14px;"><svg aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="16" rx="2"></rect><path d="m7 9 3 3-3 3"></path><path d="M13 15h4"></path></svg>Консоль ADB</a>
+<a href="History.dc.html" style="display: flex; align-items: center; gap: 12px; min-height: 44px; padding: 0 12px; border-radius: 10px; background: #1D232B; color: #FFFFFF; text-decoration: none; font-weight: 700; font-size: 14px;"><svg aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="{{accent}}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 3-6.7L3 8"></path><path d="M3 3v5h5"></path><path d="M12 7v5l3 2"></path></svg>История и откат</a>
+<a href="#" style="display: flex; align-items: center; gap: 12px; min-height: 44px; padding: 0 12px; border-radius: 10px; color: #B9C1CC; text-decoration: none; font-weight: 600; font-size: 14px;"><svg aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 6h9M17 6h3M4 12h3M11 12h9M4 18h11M19 18h1"></path><circle cx="15" cy="6" r="2"></circle><circle cx="9" cy="12" r="2"></circle><circle cx="17" cy="18" r="2"></circle></svg>Настройки</a>
+<div style="flex-grow: 1; min-height: 24px;"></div>
+<div style="border: 1px solid #262D36; border-radius: 12px; padding: 12px; display: flex; align-items: center; gap: 10px;">
+<div style="width: 8px; height: 8px; border-radius: 4px; background: {{accent}};"></div>
+<div style="display: flex; flex-direction: column; gap: 2px;"><span style="font-size: 13px; font-weight: 700;">Redmi Note 8</span><span style="font-size: 12px; color: #98A2B0;">USB · отладка включена</span></div>
+</div>
+</nav>
+
+<main style="flex: 999 1 560px; min-width: 0; box-sizing: border-box; padding: 32px 40px 40px; display: flex; flex-direction: column; gap: 22px;">
+<header style="display: flex; flex-wrap: wrap; justify-content: space-between; align-items: flex-end; gap: 16px;">
+<div style="display: flex; flex-direction: column; gap: 6px;">
+<h1 style="margin: 0; font-size: 28px; font-weight: 800; letter-spacing: -0.3px;">История и откат</h1>
+<p style="margin: 0; color: #98A2B0; font-size: 15px;">Каждый запуск сохраняет точку отката. Отменяйте всё сразу или по одному изменению.</p>
+</div>
+<button type="button" style="min-height: 44px; padding: 0 18px; border-radius: 10px; border: 1px solid #4A3530; background: transparent; color: #FF9B8D; font: 700 14px Manrope, sans-serif; cursor: pointer;">Вернуть всё как было до AvG</button>
+</header>
+
+<div style="display: flex; flex-wrap: wrap; gap: 20px; align-items: flex-start;">
+<section aria-label="Точки отката" style="flex: 1 1 280px; display: flex; flex-direction: column; gap: 10px;">
+<sc-for list="{{snaps}}" as="s" hint-placeholder-count="4">
+<button type="button" onClick="{{s.pick}}" aria-pressed="{{s.pressed}}" style="{{s.style}}">
+<span style="display: flex; justify-content: space-between; gap: 10px; width: 100%;"><span style="font-weight: 800; font-size: 15px;">№{{s.n}} · {{s.profile}}</span><span style="font-size: 13px; color: #98A2B0;">{{s.when}}</span></span>
+<span style="font-size: 13px; color: #A3ACB8;">{{s.meta}}</span>
+</button>
+</sc-for>
+</section>
+
+<section aria-label="Изменения" style="flex: 2 1 420px; min-width: 0; background: #14181E; border: 1px solid #222831; border-radius: 18px; overflow: hidden;">
+<div style="display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 12px; padding: 18px 22px; border-bottom: 1px solid #222831;">
+<div style="display: flex; flex-direction: column; gap: 3px;">
+<h2 style="margin: 0; font-size: 17px; font-weight: 800;">Точка №{{cur.n}} · {{cur.profile}}</h2>
+<span style="font-size: 13px; color: #98A2B0;">{{cur.when}} · {{cur.meta}}</span>
+</div>
+<button type="button" onClick="{{undoAll}}" style="min-height: 44px; padding: 0 18px; border-radius: 10px; border: none; background: {{accent}}; color: #06140D; font: 800 14px Manrope, sans-serif; cursor: pointer;">Откатить всю точку</button>
+</div>
+<sc-for list="{{changes}}" as="c" hint-placeholder-count="6">
+<div style="{{c.rowStyle}}">
+<div style="flex: 1 1 auto; min-width: 0; display: flex; flex-direction: column; gap: 4px;">
+<span style="font-size: 14px; font-weight: 700;">{{c.title}}</span>
+<code style="font-family: 'JetBrains Mono', monospace; font-size: 12px; color: #8FA0B4; overflow-wrap: anywhere;">↺ {{c.revert}}</code>
+</div>
+<sc-if value="{{c.active}}" hint-placeholder-val="{{ true }}">
+<button type="button" onClick="{{c.undo}}" style="flex-shrink: 0; min-height: 36px; padding: 0 14px; border-radius: 9px; border: 1px solid #343C47; background: transparent; color: #E8EBF0; font: 700 13px Manrope, sans-serif; cursor: pointer;">Отменить</button>
+</sc-if>
+<sc-if value="{{c.reverted}}" hint-placeholder-val="{{ false }}">
+<span style="flex-shrink: 0; font-size: 13px; font-weight: 700; color: #98A2B0;">Отменено</span>
+</sc-if>
+</div>
+</sc-for>
+</section>
+</div>
+</main>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"accent":{"editor":"color","default":"#3DDC97","options":["#3DDC97","#5AB2FF","#B69CFF","#F5B544"]},"$preview":{"width":1280,"height":820}}'>
+class Component extends DCLogic {
+  constructor(props) { super(props); this.state = { sel: 7, undone: {} }; }
+  renderVals() {
+    const accent = this.props.accent ?? '#3DDC97';
+    const list = [
+      { n: 7, profile: 'Слабый телефон', when: 'Сегодня, 14:32', meta: '10 изменений · применено' },
+      { n: 6, profile: 'Приватность', when: '12 ноября, 19:05', meta: '8 изменений · применено' },
+      { n: 5, profile: 'Свой набор', when: '3 ноября, 11:47', meta: '2 изменения · откачено' },
+      { n: 4, profile: 'Батарея', when: '28 октября, 09:15', meta: '6 изменений · откачено' }
+    ];
+    const snaps = list.map((s) => {
+      const on = s.n === this.state.sel;
+      return { ...s, pressed: on ? 'true' : 'false', pick: () => this.setState({ sel: s.n }),
+        style: 'display:flex;flex-direction:column;align-items:flex-start;gap:6px;text-align:left;padding:16px 18px;border-radius:14px;cursor:pointer;font-family:Manrope,sans-serif;color:#E8EBF0;' +
+          (on ? 'background:#1A2028;border:1px solid ' + accent + ';' : 'background:#14181E;border:1px solid #222831;') };
+    });
+    const cur = list.find((s) => s.n === this.state.sel) || list[0];
+    const raw = [
+      ['Рекламная служба MIUI (MSA)', 'cmd package install-existing com.miui.msa.global'],
+      ['Аналитика Xiaomi', 'cmd package install-existing com.miui.analytics'],
+      ['Службы Facebook (3)', 'cmd package install-existing com.facebook.services …'],
+      ['Анимации 0.5x', 'settings put global window_animation_scale 1.0  (+2)'],
+      ['Фон для 6 приложений', 'cmd appops set <pkg> RUN_ANY_IN_BACKGROUND allow'],
+      ['Private DNS', 'settings put global private_dns_mode off']
+    ];
+    const key = (i) => cur.n + ':' + i;
+    const changes = raw.map((r, i) => {
+      const reverted = !!this.state.undone[key(i)];
+      return { title: r[0], revert: r[1], reverted, active: !reverted,
+        undo: () => this.setState({ undone: { ...this.state.undone, [key(i)]: true } }),
+        rowStyle: 'display:flex;gap:16px;align-items:center;padding:14px 22px;border-top:1px solid #1E242C;' + (reverted ? 'opacity:0.55;' : '') };
+    });
+    const undoAll = () => { const u = { ...this.state.undone }; raw.forEach((_, i) => { u[key(i)] = true; }); this.setState({ undone: u }); };
+    return { accent, snaps, cur, changes, undoAll };
+  }
+}
+</script>
+</body>
+</html>
