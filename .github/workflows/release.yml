@@ -47,4 +47,4 @@ jobs:
           tagName: ${{ inputs.tag || github.ref_name }}
           releaseName: 'AvG ${{ inputs.tag || github.ref_name }}'
           releaseBody: 'Скачайте установщик для своей системы. Рядом с AvG понадобится папка platform-tools (см. README).'
-          releaseDraft: true
+          releaseDraft: false
