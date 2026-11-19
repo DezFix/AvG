@@ -22,9 +22,14 @@ export async function listen(event, cb) {
 
 export async function pickApks() {
   if (!T) return null;
-  const r = await T.dialog.open({ multiple: true, filters: [{ name: 'Android-приложение', extensions: ['apk'] }] });
+  const r = await T.dialog.open({ multiple: true, filters: [{ name: 'Android-приложение', extensions: ['apk', 'apks', 'xapk', 'apkm'] }] });
   if (!r) return null;
   return Array.isArray(r) ? r : [r];
+}
+
+export async function pickFolder() {
+  if (!T) return null;
+  return T.dialog.open({ directory: true, multiple: false, title: 'Папка с вашими APK' });
 }
 
 export async function pickAdb() {

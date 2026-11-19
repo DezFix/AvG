@@ -243,7 +243,11 @@ th:first-child, td:first-child { padding-left: 20px; }
 th:last-child, td:last-child { padding-right: 20px; text-align: right; }
 td { padding: 10px 12px; border-top: 1px solid #1E242C; color: var(--text-2); }
 .app-cell { display: flex; align-items: center; gap: 12px; }
-.avatar { width: 36px; height: 36px; border-radius: 10px; display: flex; align-items: center; justify-content: center; font-weight: 800; font-size: 15px; color: var(--bg); flex-shrink: 0; }
+.avatar { width: 36px; height: 36px; border-radius: 10px; display: flex; align-items: center; justify-content: center; font-weight: 800; font-size: 15px; color: #A3ACB8; background: #232A33; flex-shrink: 0; }
+.avatar.pic { background: transparent; overflow: hidden; }
+.avatar.pic img { width: 100%; height: 100%; object-fit: contain; display: block; }
+/* У адаптивной иконки рисунок в центре холста 108dp — увеличиваем. */
+.avatar.pic.adaptive img { transform: scale(1.45); }
 .app-cell { min-width: 0; }
 .app-cell .n { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
 .app-cell .n b, .app-cell .n code { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
@@ -301,3 +305,37 @@ button.badge:hover { filter: brightness(1.25); }
 details > summary { list-style: none; }
 details > summary::before { content: '▸ '; }
 details[open] > summary::before { content: '▾ '; }
+
+/* ── установка APK ── */
+.inst-folder { display: flex; flex-wrap: wrap; align-items: center; gap: 14px 18px; padding: 18px 20px; }
+.inst-folder .tile { width: 44px; height: 44px; border-radius: 12px; }
+.inst-path { flex: 1 1 280px; min-width: 0; display: flex; flex-direction: column; gap: 4px; }
+.inst-path code { font-family: var(--mono); font-size: 13px; color: var(--text); overflow-wrap: anywhere; }
+.inst-btns { display: flex; flex-wrap: wrap; gap: 8px; }
+.inst-pick { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+.pill.sm { min-height: 36px; padding: 0 14px; font-size: 13px; }
+.pill:disabled { opacity: .5; cursor: default; }
+.inst-row { display: grid; grid-template-columns: 20px 40px minmax(0, 1fr) 64px 176px; align-items: center; gap: 14px; padding: 12px 20px; border-top: 1px solid #1E242C; cursor: pointer; }
+.inst-row:first-child { border-top: none; }
+.inst-row:hover { background: #171B21; }
+.inst-row.off { opacity: .55; cursor: default; }
+.inst-row.run { background: #171C23; }
+.inst-row input[type="checkbox"] { width: 20px; height: 20px; margin: 0; accent-color: var(--accent); flex-shrink: 0; cursor: pointer; }
+.inst-row .avatar { width: 40px; height: 40px; border-radius: 11px; }
+.inst-name { min-width: 0; display: flex; flex-direction: column; gap: 3px; }
+.inst-name .t { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+.inst-name b { font-size: 15px; }
+.inst-name code { font-family: var(--mono); font-size: 12px; color: var(--code); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.inst-ver { font-size: 13px; color: #A3ACB8; line-height: 1.4; }
+.inst-size { font-size: 13px; color: #A3ACB8; text-align: right; white-space: nowrap; }
+.inst-status { display: flex; flex-direction: column; align-items: flex-end; gap: 4px; text-align: right; }
+.inst-status code.err { font-family: var(--mono); font-size: 11px; color: var(--high); overflow-wrap: anywhere; line-height: 1.4; }
+.inst-bar { flex-direction: column; align-items: stretch; }
+.inst-progress { display: flex; flex-direction: column; gap: 8px; }
+.inst-progress-t { display: flex; justify-content: space-between; gap: 12px; font-size: 13px; }
+.inst-foot { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 14px; }
+.inst-sum { display: flex; flex-direction: column; gap: 8px; }
+.inst-sum b { font-size: 15px; }
+.inst-opts { display: flex; flex-wrap: wrap; gap: 6px 18px; font-size: 13px; color: var(--text-2); }
+.inst-opts label { display: inline-flex; align-items: center; gap: 8px; cursor: pointer; }
+.inst-opts input { width: 16px; height: 16px; margin: 0; accent-color: var(--accent); }

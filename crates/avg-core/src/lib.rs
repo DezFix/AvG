@@ -18,10 +18,13 @@
 //! из GUI, из CLI или из тестов.
 
 pub mod adb;
+pub mod apk;
 pub mod discover;
 pub mod engine;
+pub mod installer;
 pub mod packages;
 pub mod plan;
+pub mod remote;
 pub mod safety;
 pub mod scan;
 pub mod snapshot;

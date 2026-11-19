@@ -1,5 +1,5 @@
 // AvG — логика интерфейса. Без фреймворков: состояние → HTML-строка → DOM.
-import { call, listen, pickApks, pickAdb, saveApk, onDragDrop, isTauri } from './api.js';
+import { call, listen, pickApks, pickAdb, pickFolder, saveApk, onDragDrop, isTauri } from './api.js';
 import { icon, hydrateIcons } from './icons.js';
 
 // ───────────────────────── состояние ─────────────────────────
@@ -27,6 +27,13 @@ const S = {
   appsLoading: false,
   appsTab: 'all',
   appsQuery: '',
+  icons: {},              // пакет → {src, bg, adaptive} из APK на телефоне
+  apkLabels: {},          // пакет → название из APK
+  iconProgress: null,
+  inst: {
+    folder: null, items: null, loading: false, compared: false, sel: new Set(),
+    phase: 'idle', queue: [], res: {}, err: {}, stopReq: false, keepGoing: true, downgrade: false,
+  },
   consoleLog: [],
   consoleBusy: false,
   info: null,
@@ -122,12 +129,12 @@ function render() {
 
 function renderNow() {
   document.querySelectorAll('.nav-item').forEach((a) => {
-    const active = a.dataset.view === S.view || (S.view === 'plan' || S.view === 'apply' ? a.dataset.view === 'main' : false);
+    const active = a.dataset.view === S.view || (S.view === 'plan' || S.view === 'apply' ? a.dataset.view === 'main' : S.view === 'installer' && a.dataset.view === 'apps');
     a.classList.toggle('active', active);
     if (active) a.setAttribute('aria-current', 'page'); else a.removeAttribute('aria-current');
   });
   renderChip();
-  const views = { main: viewMain, plan: viewPlan, apply: viewApply, history: viewHistory, apps: viewApps, console: viewConsole, settings: viewSettings };
+  const views = { main: viewMain, plan: viewPlan, apply: viewApply, history: viewHistory, apps: viewApps, installer: viewInstaller, console: viewConsole, settings: viewSettings };
   const logBody = $('.log-body', view);
   const stick = logBody ? logBody.scrollHeight - logBody.scrollTop - logBody.clientHeight < 40 : true;
   view.innerHTML = `<div class="page">${(views[S.view] || viewMain)()}</div>`;
@@ -143,6 +150,11 @@ function go(v) {
   if (v === 'history') loadSnapshots();
   if (v === 'apps' && !S.apps && device()) loadApps();
   if (v === 'settings') loadInfo();
+  if (v === 'installer' && S.inst.phase !== 'running') {
+    if (!S.inst.items) {
+      if (!S.inst.loading) initInstaller();
+    } else if (device() && !S.inst.compared && S.inst.items.length) reloadInstaller();
+  }
   render();
   view.scrollTop = 0;
 }
@@ -163,7 +175,7 @@ async function pollDevices() {
     const cur = S.devices.find((d) => d.serial === S.serial);
     const changed = prev !== S.serial || prevState !== cur?.state;
     if (changed) {
-      S.scan = null; S.plan = null; S.apps = null; S.scanError = '';
+      S.scan = null; S.plan = null; S.apps = null; S.icons = {}; S.apkLabels = {}; S.inst.compared = false; S.scanError = '';
       if (cur?.state === 'device') scanDevice();
       if (S.view === 'history') loadSnapshots();
       render();
@@ -209,7 +221,7 @@ function renderChip() {
   chip.innerHTML = `<div class="dot ${dot}"></div><div class="t" style="flex:1"><b>${esc(title)}</b><span>${esc(sub)}</span>${select}</div>`;
   $('#dev-select', chip)?.addEventListener('change', (e) => {
     S.serial = e.target.value;
-    S.scan = null; S.plan = null; S.apps = null;
+    S.scan = null; S.plan = null; S.apps = null; S.icons = {}; S.apkLabels = {}; S.inst.compared = false;
     scanDevice();
     render();
   });
@@ -635,19 +647,13 @@ async function loadApps() {
   render();
   try {
     S.apps = await call('list_apps', { serial: S.serial });
+    requestIcons();
   } catch (e) {
     toast(errText(e), 'err');
   } finally {
     S.appsLoading = false;
     render();
   }
-}
-
-const AV = ['#5AB2FF', '#3DDC97', '#F5B544', '#B69CFF', '#FF8A7A', '#7FD4E8'];
-function avatarColor(s) {
-  let h = 0;
-  for (const c of s) h = (h * 31 + c.charCodeAt(0)) >>> 0;
-  return AV[h % AV.length];
 }
 
 function appTabs() {
@@ -673,7 +679,7 @@ function filteredApps() {
       case 'off': if (!x.installed || x.enabled) return false; break;
       case 'removed': if (x.installed) return false; break;
     }
-    return !q || x.package.toLowerCase().includes(q) || (x.label || '').toLowerCase().includes(q);
+    return !q || x.package.toLowerCase().includes(q) || appName(x).toLowerCase().includes(q);
   });
 }
 
@@ -696,7 +702,7 @@ function viewApps() {
       <colgroup><col><col class="c-safety"><col class="c-status"><col class="c-actions"></colgroup>
       <thead><tr><th scope="col">Приложение</th><th scope="col">Удаление</th><th scope="col">Статус</th><th scope="col"><span class="sr">Действия</span></th></tr></thead>
       <tbody id="apps-tbody"></tbody></table></div>
-    <p class="label" style="font-size:13px;margin:0">Нажмите на оценку, чтобы узнать, почему AvG так считает. Если сомневаетесь — отключайте, а не удаляйте: отключение возвращается одной кнопкой. Перетащите файлы .apk в окно, чтобы установить.</p>`;
+    <p class="label" style="font-size:13px;margin:0">Нажмите на оценку, чтобы узнать, почему AvG так считает. Если сомневаетесь — отключайте, а не удаляйте: отключение возвращается одной кнопкой. Иконки и названия AvG берёт из APK на телефоне и запоминает. <span id="icon-progress">${iconProgressText()}</span></p>`;
 }
 
 // Оценка «можно ли удалить»: класс бейджа, подпись, пояснение для легенды.
@@ -714,7 +720,7 @@ function renderAppRows() {
   const list = filteredApps();
   const MAX = 400;
   tb.innerHTML = list.slice(0, MAX).map((x) => {
-    const name = x.label || x.package.split('.').pop();
+    const name = appName(x);
     const status = !x.installed ? ['muted', 'Удалено'] : !x.enabled ? ['muted', 'Отключено'] : ['safe', 'Включено'];
     const p = esc(x.package);
     let actions;
@@ -724,7 +730,8 @@ function renderAppRows() {
         : `<button class="btn sm ghost" data-act="pkg" data-a="${x.enabled ? 'disable' : 'enable'}" data-p="${p}">${x.enabled ? 'Отключить' : 'Включить'}</button>`}
       <button class="btn sm ghost icon" aria-label="Сохранить APK" title="Сохранить APK на компьютер" data-act="pull" data-p="${p}">${icon('download', 16)}</button>
       ${x.critical ? '' : `<button class="btn sm danger icon" aria-label="Удалить" title="Удалить" data-act="pkg" data-a="uninstall" data-p="${p}">${icon('trash', 16)}</button>`}`;
-    return `<tr><td><div class="app-cell"><span class="avatar" aria-hidden="true" style="background:${avatarColor(x.package)}">${esc(name[0]?.toUpperCase() || '?')}</span>
+    const ic = S.icons[x.package];
+    return `<tr><td><div class="app-cell">${avatarHtml(ic?.src, ic?.bg, ic?.adaptive, name)}
       <span class="n"><b title="${esc(name)}">${esc(name)}</b><code class="selectable" title="${p}">${p}</code></span></div></td>
       <td><button class="badge ${SAFETY[x.safety]?.[0] || 'muted'} why" data-act="why" data-p="${p}" title="${esc(x.safety_note || '')}">${SAFETY[x.safety]?.[1] || '—'}</button></td>
       <td><span class="badge ${status[0]}">${status[1]}</span></td>
@@ -760,20 +767,260 @@ ${text}`;
   await loadApps();
 }
 
-async function installApks(paths) {
-  if (!device()) return toast('Сначала подключите телефон', 'err');
-  for (const p of paths) {
-    const name = p.split(/[\\/]/).pop();
-    if (!/\.apk$/i.test(name)) { toast(`${name}: поддерживаются только .apk`, 'err'); continue; }
-    toast(`Устанавливаю ${name}…`);
-    try {
-      await call('install_apk', { serial: S.serial, path: p });
-      toast(`Установлено: ${name}`, 'ok');
-    } catch (e) {
-      toast(`${name}: ${errText(e)}`, 'err');
-    }
+// ───────────────────────── иконки установленных приложений ─────────────────────────
+function requestIcons() {
+  if (!device() || !S.apps) return;
+  // Оверлеи и системные службы без иконок не трогаем: их APK большие и бесполезные.
+  const want = S.apps
+    .filter((x) => x.installed && (!x.system || ['safe', 'optional', 'unknown'].includes(x.safety)))
+    .map((x) => x.package);
+  S.iconProgress = want.length ? { done: 0, total: want.length } : null;
+  call('load_icons', { serial: S.serial, packages: want }).catch(() => {});
+}
+
+const iconProgressText = () => (S.iconProgress ? `Загружаю иконки и названия из APK: ${S.iconProgress.done} из ${S.iconProgress.total}` : '');
+
+let rowsQueued = false;
+function onIconEvent(ev) {
+  if (ev.kind === 'icon') {
+    if (ev.icon) S.icons[ev.package] = { src: ev.icon, bg: ev.bg, adaptive: !!ev.adaptive };
+    if (ev.label) S.apkLabels[ev.package] = ev.label;
+  } else if (ev.kind === 'progress') {
+    S.iconProgress = ev.done >= ev.total ? null : { done: ev.done, total: ev.total };
+  } else if (ev.kind === 'error') {
+    S.iconProgress = null;
   }
-  if (S.view === 'apps') loadApps();
+  if (S.view !== 'apps' || rowsQueued) return;
+  rowsQueued = true;
+  setTimeout(() => {
+    rowsQueued = false;
+    if (S.view !== 'apps') return;
+    renderAppRows();
+    const el = $('#icon-progress');
+    if (el) el.textContent = iconProgressText();
+  }, 300);
+}
+
+/** Название: известное AvG → из APK → хвост имени пакета. */
+function appName(x) {
+  return x.label || S.apkLabels[x.package] || x.package.split('.').pop();
+}
+
+function avatarHtml(src, bg, adaptive, name) {
+  if (src) {
+    return `<span class="avatar pic${adaptive ? ' adaptive' : ''}" aria-hidden="true"${bg ? ` style="background:${esc(bg)}"` : ''}><img src="${esc(src)}" alt=""></span>`;
+  }
+  return `<span class="avatar" aria-hidden="true">${esc(name[0]?.toUpperCase() || '?')}</span>`;
+}
+
+// ───────────────────────── установка APK ─────────────────────────
+const INST_KIND = {
+  new: ['info', 'Не установлено'],
+  update: ['safe', 'Обновление'],
+  same: ['muted', 'Уже установлено'],
+  older: ['medium', 'Старее, чем на телефоне'],
+  bad: ['high', 'Не подходит'],
+  unknown: ['muted', 'Не сравнивалось'],
+};
+const INST_RUN = {
+  queued: ['muted', 'В очереди'],
+  running: ['info', 'Устанавливаю…'],
+  done: ['safe', 'Установлено'],
+  fail: ['high', 'Ошибка'],
+  skipped: ['muted', 'Пропущено'],
+};
+const FINISHED = ['done', 'fail', 'skipped'];
+
+const defaultPick = (x) => x.kind === 'new' || x.kind === 'update' || (x.kind === 'unknown' && !!x.package);
+
+function fmtSize(bytes) {
+  if (bytes < 1048576) return `${Math.max(1, Math.round(bytes / 1024))} КБ`;
+  const mb = bytes / 1048576;
+  return `${mb < 10 ? mb.toFixed(1).replace('.', ',') : Math.round(mb)} МБ`;
+}
+
+async function scanInstaller({ folder = null, files = [], merge = false } = {}) {
+  const I = S.inst;
+  if (I.phase === 'running') return toast('Дождитесь окончания установки', 'err');
+  I.loading = true;
+  render();
+  try {
+    const r = await call('scan_apks', { serial: device() ? S.serial : null, folder, files });
+    const fresh = new Set(r.items.map((x) => x.path));
+    const kept = merge ? (I.items || []).filter((x) => !fresh.has(x.path)) : [];
+    const sel = new Set(kept.filter((x) => I.sel.has(x.path)).map((x) => x.path));
+    r.items.filter(defaultPick).forEach((x) => sel.add(x.path));
+    I.items = [...kept, ...r.items];
+    I.sel = sel;
+    I.folder = r.folder;
+    I.compared = r.compared;
+    I.phase = 'idle';
+    I.queue = [];
+    I.res = {};
+    I.err = {};
+  } catch (e) {
+    toast(errText(e), 'err');
+    I.items ??= [];
+  } finally {
+    I.loading = false;
+    render();
+  }
+}
+
+/** Первое открытие: дожидаемся настроек (там запомненная папка) и читаем её. */
+async function initInstaller() {
+  S.inst.loading = true;
+  render();
+  if (!S.info) await loadInfo();
+  if (S.inst.items) return;
+  const f = S.info?.apk_folder;
+  if (f) return scanInstaller({ folder: f });
+  S.inst.items = [];
+  S.inst.loading = false;
+  render();
+}
+
+/** Перечитать папку и добавленные вручную файлы (после обновления на телефоне). */
+function reloadInstaller() {
+  const I = S.inst;
+  const extra = (I.items || []).filter((x) => !I.folder || !x.path.startsWith(I.folder)).map((x) => x.path);
+  scanInstaller({ folder: I.folder, files: extra });
+}
+
+function pickInstaller(mode) {
+  const I = S.inst;
+  const ok = {
+    new: defaultPick,
+    all: (x) => x.kind !== 'bad' && (x.kind !== 'older' || I.downgrade),
+    none: () => false,
+  }[mode];
+  I.sel = new Set((I.items || []).filter(ok).map((x) => x.path));
+  render();
+}
+
+async function startInstall(paths) {
+  const I = S.inst;
+  if (!device()) return toast('Сначала подключите телефон', 'err');
+  const list = paths.map((p) => I.items.find((x) => x.path === p)).filter((x) => x && x.kind !== 'bad');
+  if (!list.length) return;
+  I.queue = list.map((x) => x.path);
+  I.res = { ...I.res };
+  I.err = { ...I.err };
+  for (const p of I.queue) { I.res[p] = 'queued'; delete I.err[p]; }
+  I.phase = 'running';
+  I.stopReq = false;
+  render();
+  const items = list.map((x) => ({
+    path: x.path,
+    package: x.package,
+    label: x.label || x.file_name,
+    downgrade: I.downgrade,
+    installed: ['update', 'same', 'older'].includes(x.kind),
+  }));
+  try {
+    await call('install_queue', { serial: S.serial, items, keepGoing: I.keepGoing });
+  } catch (e) {
+    toast(errText(e), 'err');
+  } finally {
+    for (const p of I.queue) if (!FINISHED.includes(I.res[p])) I.res[p] = 'skipped';
+    I.phase = 'done';
+    S.apps = null;
+    const ok = I.queue.filter((p) => I.res[p] === 'done').length;
+    const bad = I.queue.filter((p) => I.res[p] === 'fail').length;
+    toast(bad ? `Установлено ${ok}, ошибок ${bad}` : `Установлено: ${ok}`, bad ? 'err' : 'ok');
+    render();
+  }
+}
+
+function onInstallEvent(ev) {
+  const I = S.inst;
+  if (ev.kind !== 'item') return;
+  const p = I.queue[ev.index];
+  if (!p) return;
+  I.res[p] = ev.status;
+  if (ev.error) I.err[p] = ev.error;
+  render();
+}
+
+function viewInstaller() {
+  const I = S.inst;
+  const busy = I.phase === 'running';
+  const items = I.items || [];
+  const head = `<header class="head"><div class="tt"><a class="back" href="#apps" data-act="go" data-v="apps">← Приложения</a>
+    <h1>Установка APK</h1><p class="sub">Соберите свои APK в одну папку. AvG покажет, что из этого уже стоит на телефоне, и установит выбранное по очереди.</p></div></header>`;
+  const total = items.reduce((a, x) => a + x.size, 0);
+  const meta = I.folder || items.length
+    ? `${items.length} ${plural(items.length, ['файл', 'файла', 'файлов'])} · ${fmtSize(total)} · .apk, .apks, .xapk · папка запоминается`
+    : 'Поддерживаются .apk, .apks, .xapk и .apkm';
+  const folder = `<section class="card inst-folder">
+    <div class="tile" style="color:var(--accent)">${icon('folder', 22)}</div>
+    <div class="inst-path"><code class="selectable">${I.folder ? esc(I.folder) : 'Папка не выбрана'}</code><span class="label">${meta}</span></div>
+    <div class="inst-btns">
+      <button class="btn sm" data-act="inst-folder" ${busy ? 'disabled' : ''}>${I.folder ? 'Сменить папку' : 'Выбрать папку'}</button>
+      <button class="btn sm" data-act="inst-files" ${busy ? 'disabled' : ''}>Добавить файлы</button>
+      <button class="btn sm icon" data-act="inst-reload" aria-label="Перечитать папку" title="Перечитать папку" ${busy || I.loading ? 'disabled' : ''}>${icon('refresh', 16)}</button>
+    </div></section>`;
+  if (I.loading && !items.length) return head + folder + `<div class="card" style="display:flex;gap:14px;align-items:center"><div class="spinner"></div>Читаю файлы…</div>`;
+  if (!items.length) {
+    return head + folder + `<section class="card empty"><h2>Здесь пока пусто</h2>
+      <p class="sub">Выберите папку, где лежат ваши APK, или перетащите файлы прямо в окно. AvG прочитает название, версию и иконку каждого файла и сравнит с телефоном.</p></section>`;
+  }
+  const warn = !device()
+    ? `<div class="note">${icon('usb', 16)}Телефон не подключён — сравнить с установленными приложениями нельзя.</div>`
+    : !I.compared ? `<div class="note">${icon('refresh', 16)}Телефон подключили позже — нажмите «Перечитать», чтобы сравнить версии.</div>` : '';
+  const rows = items.map((x) => {
+    const r = I.res[x.path];
+    const [cls, label] = r ? INST_RUN[r] : INST_KIND[x.kind] || INST_KIND.unknown;
+    const locked = busy || x.kind === 'bad';
+    const checked = I.sel.has(x.path) && x.kind !== 'bad';
+    const name = x.label || x.file_name;
+    const ver = x.kind === 'update' ? `на телефоне ${x.installed_version || '?'} → ${x.version_name}`
+      : x.kind === 'same' ? `та же версия ${x.version_name}`
+      : x.kind === 'older' ? `на телефоне ${x.installed_version || '?'}, в файле ${x.version_name}`
+      : x.kind === 'bad' ? x.note
+      : x.version_name ? `версия ${x.version_name}` : '';
+    const parts = x.parts > 1 ? `<span class="badge muted">.${esc(x.format)} · ${x.parts} ${plural(x.parts, ['часть', 'части', 'частей'])}</span>` : '';
+    return `<label class="inst-row${x.kind === 'bad' ? ' off' : ''}${r === 'running' ? ' run' : ''}">
+      <input type="checkbox" data-inst="${esc(x.path)}" ${checked ? 'checked' : ''} ${locked ? 'disabled' : ''} aria-label="${esc(name)}">
+      ${avatarHtml(x.icon, x.icon_bg, x.icon_adaptive, name)}
+      <span class="inst-name"><span class="t"><b>${esc(name)}</b>${parts}</span><code class="selectable" title="${esc(x.path)}">${esc(x.file_name)}${x.package ? ` · ${esc(x.package)}` : ''}</code>${ver ? `<span class="inst-ver">${esc(ver)}</span>` : ''}</span>
+      <span class="inst-size">${fmtSize(x.size)}</span>
+      <span class="inst-status"><span class="badge ${cls}">${label}</span>${I.err[x.path] ? `<code class="selectable err">${esc(I.err[x.path])}</code>` : ''}</span>
+    </label>`;
+  }).join('');
+
+  const chosen = items.filter((x) => I.sel.has(x.path) && x.kind !== 'bad');
+  const q = I.queue;
+  const finished = q.filter((p) => FINISHED.includes(I.res[p])).length;
+  const doneN = q.filter((p) => I.res[p] === 'done').length;
+  const failN = q.filter((p) => I.res[p] === 'fail').length;
+  const cur = items.find((x) => I.res[x.path] === 'running');
+  const pct = q.length ? Math.round((finished / q.length) * 100) : 0;
+  const summary = busy ? 'Не отключайте телефон'
+    : I.phase === 'done' ? `Готово: установлено ${doneN}${failN ? `, ошибок ${failN}` : ''}`
+    : chosen.length ? `Выбрано ${chosen.length} из ${items.length} · ${fmtSize(chosen.reduce((a, x) => a + x.size, 0))}` : 'Ничего не выбрано';
+  const progress = I.phase === 'idle' ? '' : `<div class="inst-progress">
+      <div class="inst-progress-t"><b>${busy ? `${I.stopReq ? 'Остановлюсь после: ' : 'Сейчас: '}${esc(cur ? cur.label || cur.file_name : '…')}` : 'Очередь завершена'}</b><span class="label">${finished} из ${q.length}</span></div>
+      <div class="bar" role="progressbar" aria-valuenow="${pct}" aria-valuemin="0" aria-valuemax="100" aria-label="Прогресс установки"><div style="width:${pct}%"></div></div></div>`;
+  const footer = `<div class="footer-bar inst-bar">${progress}
+    <div class="inst-foot">
+      <div class="inst-sum"><b>${summary}</b>
+        <div class="inst-opts">
+          <label><input type="checkbox" data-opt="keepGoing" ${I.keepGoing ? 'checked' : ''} ${busy ? 'disabled' : ''}>Не останавливаться при ошибке</label>
+          <label><input type="checkbox" data-opt="downgrade" ${I.downgrade ? 'checked' : ''} ${busy ? 'disabled' : ''}>Разрешить ставить старую версию</label>
+        </div></div>
+      <div class="inst-btns">
+        ${busy && !I.stopReq ? '<button class="btn danger" data-act="inst-stop">Остановить после текущего</button>' : ''}
+        ${!busy && failN ? '<button class="btn ghost" data-act="inst-retry">Повторить неудачные</button>' : ''}
+        ${!busy ? `<button class="btn primary" data-act="inst-start" ${chosen.length && device() ? '' : 'disabled'}>${icon('download', 16)}Установить по очереди</button>` : ''}
+      </div></div></div>`;
+  return head + folder + warn + `
+    <div class="inst-pick"><span class="label">Выбрать:</span>
+      <button class="pill sm" data-act="inst-pick" data-mode="new" ${busy ? 'disabled' : ''}>Новые и обновления</button>
+      <button class="pill sm" data-act="inst-pick" data-mode="all" ${busy ? 'disabled' : ''}>Все подходящие</button>
+      <button class="pill sm" data-act="inst-pick" data-mode="none" ${busy ? 'disabled' : ''}>Ничего</button></div>
+    <section class="card flush" aria-label="Файлы">${rows}</section>` + footer +
+    `<p class="label" style="font-size:13px;margin:0;line-height:1.5">Наборы .apks/.xapk ставятся целиком через install-multiple, данные игр (OBB) копируются сами. Новые программы попадают в «Историю и откат» — оттуда их можно удалить одной кнопкой.</p>`;
 }
 
 // ───────────────────────── консоль ─────────────────────────
@@ -944,7 +1191,14 @@ view.addEventListener('click', async (e) => {
       try { await call('pull_apk', { serial: S.serial, package: pkg, dest }); toast(`APK сохранён: ${dest}`, 'ok'); } catch (err) { toast(errText(err), 'err'); }
       break;
     }
-    case 'install': { const files = await pickApks(); if (files) installApks(files); break; }
+    case 'install': go('installer'); break;
+    case 'inst-folder': { const f = await pickFolder(); if (f) scanInstaller({ folder: f }); break; }
+    case 'inst-files': { const fs = await pickApks(); if (fs) scanInstaller({ files: fs, merge: true }); break; }
+    case 'inst-reload': reloadInstaller(); break;
+    case 'inst-pick': pickInstaller(el.dataset.mode); break;
+    case 'inst-start': startInstall((S.inst.items || []).filter((x) => S.inst.sel.has(x.path)).map((x) => x.path)); break;
+    case 'inst-stop': S.inst.stopReq = true; call('stop_install').catch(() => {}); render(); break;
+    case 'inst-retry': startInstall(S.inst.queue.filter((p) => S.inst.res[p] === 'fail')); break;
     case 'quick': runConsole(el.dataset.cmd); break;
     case 'clear-console': S.consoleLog = []; render(); break;
     case 'pick-adb': {
@@ -962,6 +1216,18 @@ view.addEventListener('click', async (e) => {
 });
 
 view.addEventListener('change', (e) => {
+  const inst = e.target.dataset?.inst;
+  if (inst !== undefined) {
+    if (e.target.checked) S.inst.sel.add(inst); else S.inst.sel.delete(inst);
+    render();
+    return;
+  }
+  const opt = e.target.dataset?.opt;
+  if (opt) {
+    S.inst[opt] = e.target.checked;
+    render();
+    return;
+  }
   const id = e.target.dataset?.check;
   if (id) {
     if (e.target.checked) S.selected.add(id); else S.selected.delete(id);
@@ -995,6 +1261,8 @@ document.querySelectorAll('.nav-item').forEach((a) => a.addEventListener('click'
 hydrateIcons(document);
 listen('avg://apply', onApplyEvent);
 listen('avg://download', onDownloadEvent);
+listen('avg://install', onInstallEvent);
+listen('avg://icon', onIconEvent);
 loadInfo();
 
 let dragDepth = false;
@@ -1002,10 +1270,19 @@ onDragDrop((p) => {
   const ov = $('#drop-overlay');
   if (p.type === 'enter' || p.type === 'over') { if (!dragDepth) { dragDepth = true; ov.hidden = false; } }
   else if (p.type === 'leave') { dragDepth = false; ov.hidden = true; }
-  else if (p.type === 'drop') { dragDepth = false; ov.hidden = true; if (p.paths?.length) installApks(p.paths); }
+  else if (p.type === 'drop') {
+    dragDepth = false;
+    ov.hidden = true;
+    if (!p.paths?.length) return;
+    // Брошенные файлы попадают в очередь установки вместе с папкой.
+    const first = !S.inst.items;
+    S.inst.items ??= [];
+    if (S.view !== 'installer') go('installer');
+    scanInstaller(first ? { folder: S.info?.apk_folder || null, files: p.paths } : { files: p.paths, merge: true });
+  }
 });
 
 const start = location.hash.slice(1);
-go(['main', 'apps', 'console', 'history', 'settings'].includes(start) ? start : 'main');
+go(['main', 'apps', 'installer', 'console', 'history', 'settings'].includes(start) ? start : 'main');
 pollDevices();
 setInterval(pollDevices, 2500);

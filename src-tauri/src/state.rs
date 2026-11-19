@@ -1,6 +1,6 @@
 use std::collections::HashMap;
 use std::path::PathBuf;
-use std::sync::atomic::AtomicBool;
+use std::sync::atomic::{AtomicBool, AtomicU64};
 use std::sync::Mutex;
 
 use avg_core::adb::Adb;
@@ -16,6 +16,9 @@ pub struct Config {
     /// Путь к adb, выбранный пользователем.
     #[serde(default)]
     pub adb_path: Option<String>,
+    /// Последняя папка мультиустановщика.
+    #[serde(default)]
+    pub apk_folder: Option<String>,
 }
 
 pub struct AppState {
@@ -35,6 +38,10 @@ pub struct AppState {
     pub scans: Mutex<HashMap<String, Scan>>,
     pub busy: AtomicBool,
     pub cancel: AtomicBool,
+    /// «Остановить после текущего» в мультиустановщике.
+    pub install_stop: AtomicBool,
+    /// Номер текущей загрузки иконок: старая останавливается, когда начинается новая.
+    pub icon_gen: AtomicU64,
     /// Точка отката ручного режима для каждого телефона в текущем запуске.
     pub manual: Mutex<HashMap<String, u64>>,
 }
@@ -92,6 +99,8 @@ impl AppState {
             scans: Mutex::new(HashMap::new()),
             busy: AtomicBool::new(false),
             cancel: AtomicBool::new(false),
+            install_stop: AtomicBool::new(false),
+            icon_gen: AtomicU64::new(0),
             manual: Mutex::new(HashMap::new()),
         };
         // Пробуем найти adb сразу, но не падаем, если его нет.

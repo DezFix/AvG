@@ -39,6 +39,10 @@ fn main() {
             commands::install_apk,
             commands::pull_apk,
             commands::run_shell,
+            commands::scan_apks,
+            commands::install_queue,
+            commands::stop_install,
+            commands::load_icons,
         ])
         .run(tauri::generate_context!())
         .expect("не удалось запустить AvG");

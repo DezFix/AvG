@@ -261,3 +261,33 @@ mod tests {
         assert!(apply(&Never, 30, "bad name", PackageAction::Enable, true, "x").is_err());
     }
 }
+
+/// Пути к основным APK всех пакетов одним вызовом (`pm list packages -f`).
+pub fn apk_paths(dev: &dyn Shell) -> Result<HashMap<String, String>> {
+    let out = dev.shell("pm list packages -f")?;
+    if !out.ok() && out.stdout.trim().is_empty() {
+        return Err(Error::Adb(out.text()));
+    }
+    Ok(parse_apk_paths(&out.stdout))
+}
+
+pub fn parse_apk_paths(text: &str) -> HashMap<String, String> {
+    text.lines()
+        .filter_map(|l| l.trim().strip_prefix("package:"))
+        // В пути тоже бывает «=», поэтому делим по последнему.
+        .filter_map(|l| l.rsplit_once('='))
+        .filter(|(path, pkg)| is_valid_package(pkg) && path.starts_with('/'))
+        .map(|(path, pkg)| (pkg.to_string(), path.to_string()))
+        .collect()
+}
+
+#[cfg(test)]
+mod path_tests {
+    #[test]
+    fn parses_pm_list_f() {
+        let t = "package:/data/app/~~Ab==/org.telegram.messenger-Xy==/base.apk=org.telegram.messenger\npackage:/system/priv-app/Settings/Settings.apk=com.android.settings\n";
+        let m = super::parse_apk_paths(t);
+        assert_eq!(m["org.telegram.messenger"], "/data/app/~~Ab==/org.telegram.messenger-Xy==/base.apk");
+        assert_eq!(m["com.android.settings"], "/system/priv-app/Settings/Settings.apk");
+    }
+}

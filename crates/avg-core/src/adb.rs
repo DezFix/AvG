@@ -133,6 +133,15 @@ impl Adb {
         self.run(&["-s", serial, "shell", command])
     }
 
+    /// `adb exec-out`: двоичный вывод команды без перевода строк.
+    pub fn exec_out(&self, serial: &str, command: &str) -> Result<Vec<u8>> {
+        let out = self.command().args(["-s", serial, "exec-out", command]).output()?;
+        if !out.status.success() {
+            return Err(Error::Adb(String::from_utf8_lossy(&out.stderr).trim().to_string()));
+        }
+        Ok(out.stdout)
+    }
+
     pub fn install(&self, serial: &str, apk: &Path) -> Result<ShellOutput> {
         let mut args: Vec<std::ffi::OsString> =
             vec!["-s".into(), serial.into(), "install".into(), "-r".into()];
@@ -166,6 +175,17 @@ pub struct Target<'a> {
 impl Shell for Target<'_> {
     fn shell(&self, command: &str) -> Result<ShellOutput> {
         self.adb.shell(self.serial, command)
+    }
+}
+
+/// Команды с двоичным выводом (чтение файлов с телефона).
+pub trait ExecOut {
+    fn exec_out(&self, command: &str) -> Result<Vec<u8>>;
+}
+
+impl ExecOut for Target<'_> {
+    fn exec_out(&self, command: &str) -> Result<Vec<u8>> {
+        self.adb.exec_out(self.serial, command)
     }
 }
 
