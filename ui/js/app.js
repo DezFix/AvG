@@ -7,6 +7,10 @@ const S = {
   view: 'main',
   adbMissing: false,
   adbError: '',
+  adbSearch: 'idle',      // idle | quick | deep | done
+  adbCandidates: null,
+  autoSearched: false,
+  dl: null,               // загрузка adb: {stage, received, total, error}
   devices: [],
   serial: null,
   scan: null,
@@ -176,6 +180,10 @@ async function pollDevices() {
       S.serial = null;
       render();
     }
+    if (missing && !S.autoSearched) {
+      S.autoSearched = true;
+      autoFindAdb();
+    }
   }
 }
 
@@ -183,7 +191,9 @@ function renderChip() {
   const chip = $('#device-chip');
   const d = S.devices.find((x) => x.serial === S.serial);
   let dot = '', title, sub;
-  if (S.adbMissing) { dot = 'warn'; title = 'adb не найден'; sub = 'Укажите путь в настройках'; }
+  if (S.adbMissing && (S.adbSearch === 'quick' || S.adbSearch === 'deep')) { dot = 'warn'; title = 'Ищу adb…'; sub = 'Проверяю эмуляторы и SDK'; }
+  else if (S.adbMissing && S.dl && !S.dl.error) { dot = 'warn'; title = 'Скачиваю adb…'; sub = 'Официальный, от Google'; }
+  else if (S.adbMissing) { dot = 'warn'; title = 'adb не найден'; sub = 'Скачайте его на главной'; }
   else if (!d) { title = 'Телефон не подключён'; sub = 'Подключите по USB'; }
   else if (d.state === 'unauthorized') { dot = 'warn'; title = d.model || d.serial; sub = 'Подтвердите отладку на телефоне'; }
   else if (d.state !== 'device') { dot = 'warn'; title = d.model || d.serial; sub = `Состояние: ${d.state}`; }
@@ -219,24 +229,105 @@ async function scanDevice() {
   }
 }
 
+// ───────────────────────── adb: поиск и загрузка ─────────────────────────
+async function findAdb(deep, { silent = false } = {}) {
+  S.adbSearch = deep ? 'deep' : 'quick';
+  render();
+  try {
+    const r = await call('discover_adb', { deep });
+    S.adbCandidates = r.candidates;
+    S.info = r.info;
+    if (r.applied) {
+      const c = r.candidates[0];
+      toast(`Нашёл adb: ${c.source}, версия ${c.version_label}`, 'ok');
+      if (c.outdated) toast('Это старая версия adb из эмулятора. Если телефон не определится — нажмите «Скачать свежий adb» в настройках.');
+    } else if (!silent && !r.candidates.length) {
+      toast('adb на компьютере не найден — его можно скачать одной кнопкой', 'err');
+    } else if (!silent) {
+      toast(`Найдено: ${r.candidates.length}`, 'ok');
+    }
+    S.adbSearch = 'done';
+    await pollDevices();
+    return r;
+  } catch (e) {
+    S.adbSearch = 'done';
+    toast(errText(e), 'err');
+  } finally {
+    render();
+  }
+  return null;
+}
+
+/** При первом запуске: сначала быстрые известные места, затем обход дисков. */
+async function autoFindAdb() {
+  const quick = await findAdb(false, { silent: true });
+  if (quick?.applied || !S.adbMissing || S.dl) return;
+  await findAdb(true, { silent: true });
+}
+
+async function downloadAdb() {
+  S.dl = { stage: 'connect', received: 0, total: null };
+  render();
+  try {
+    S.info = await call('download_adb');
+    S.dl = null;
+    toast('adb скачан и подключён. Можно подключать телефон!', 'ok');
+    await pollDevices();
+  } catch (e) {
+    S.dl = { ...(S.dl || {}), error: errText(e) };
+  }
+  render();
+}
+
+function onDownloadEvent(ev) {
+  if (!S.dl) S.dl = {};
+  Object.assign(S.dl, ev);
+  render();
+}
+
+const mb = (b) => (b / 1048576).toFixed(1).replace('.', ',');
+
+function downloadProgress() {
+  const d = S.dl;
+  if (!d) return '';
+  if (d.error) return `<div class="note" style="color:var(--high)">${icon('x', 16)}<span class="selectable">${esc(d.error)}</span></div>`;
+  const pct = d.total ? Math.min(100, Math.round((d.received / d.total) * 100)) : null;
+  const label = { connect: 'Подключаюсь к dl.google.com…', download: `Скачиваю: ${mb(d.received || 0)}${d.total ? ` из ${mb(d.total)}` : ''} МБ`, extract: 'Распаковываю…', done: 'Готово' }[d.stage] || '…';
+  return `<div style="display:flex;flex-direction:column;gap:8px;width:100%;max-width:520px">
+    <div style="display:flex;justify-content:space-between;font-size:13px"><span class="label">${label}</span>${pct != null ? `<b>${pct}%</b>` : ''}</div>
+    <div class="bar"><div style="width:${pct ?? (d.stage === 'extract' ? 100 : 8)}%"></div></div></div>`;
+}
+
+function adbSetupCard() {
+  const searching = S.adbSearch === 'quick' || S.adbSearch === 'deep';
+  const busy = searching || (S.dl && !S.dl.error);
+  const where = S.info?.data_dir ? `<code class="selectable">${esc(S.info.data_dir)}</code>` : 'папку программы';
+  return `
+    <section class="card empty" style="max-width:820px">
+      <div class="tile">${icon('usb', 22)}</div>
+      <h2>${searching ? 'Ищу adb на компьютере…' : 'Нужен adb'}</h2>
+      <p class="sub" style="color:var(--text-2)">adb (Android Debug Bridge) — официальная утилита Google, через которую AvG общается с телефоном.
+      ${searching ? (S.adbSearch === 'deep' ? 'Проверяю эмуляторы (Nox, MuMu, LDPlayer, BlueStacks, MEmu), Android SDK и диски — это до 30 секунд.' : 'Проверяю известные места…')
+        : 'На компьютере его не нашлось — скачайте одной кнопкой.'}</p>
+      ${searching ? '<div style="display:flex;gap:12px;align-items:center"><div class="spinner"></div><span class="label">Можно не ждать и сразу скачать</span></div>' : ''}
+      ${S.dl ? downloadProgress() : ''}
+      <div style="display:flex;flex-wrap:wrap;gap:10px;align-items:center">
+        <button class="btn primary big" data-act="download-adb" ${busy && !searching ? 'disabled' : ''}>${icon('download', 18)}${S.dl?.error ? 'Попробовать снова' : 'Скачать adb'} <span style="font-weight:600;opacity:.7">≈ 7 МБ</span></button>
+        <button class="btn" data-act="find-adb" ${busy ? 'disabled' : ''}>${icon('search', 16)}Искать ещё раз</button>
+        <button class="btn ghost" data-act="pick-adb" ${busy ? 'disabled' : ''}>${icon('folder', 16)}Указать вручную</button>
+      </div>
+      <p class="label" style="font-size:12px;line-height:1.5;margin:0">Скачивается официальный пакет SDK Platform-Tools с dl.google.com в ${where}. Скачивая, вы принимаете
+      условия использования Google (developer.android.com/studio/releases/platform-tools).</p>
+    </section>`;
+}
+
 // ───────────────────────── главная ─────────────────────────
 function viewMain() {
   const head = (sub) => `
     <header class="head"><div class="tt"><h1>Оптимизация</h1><p class="sub">${sub}</p></div>
     ${device() ? `<button class="btn" data-act="rescan" ${S.scanning ? 'disabled' : ''}>${icon('refresh', 16)}Пересканировать</button>` : ''}</header>`;
 
-  if (S.adbMissing) {
-    return head('Для работы нужен adb из Android platform-tools.') + `
-      <section class="card empty">
-        <h2>adb не найден</h2>
-        <ol class="steps-list">
-          <li>Скачайте <b>SDK Platform-Tools</b> с сайта developer.android.com (бесплатно, от Google).</li>
-          <li>Распакуйте папку <code>platform-tools</code> рядом с AvG — программа найдёт её сама.</li>
-          <li>Или укажите путь к <code>adb.exe</code> вручную.</li>
-        </ol>
-        <button class="btn primary" data-act="pick-adb">${icon('folder', 16)}Указать путь к adb</button>
-      </section>`;
-  }
+  if (S.adbMissing) return head('Один раз настроим связь с телефоном — дальше всё автоматически.') + adbSetupCard();
 
   const d = S.devices.find((x) => x.serial === S.serial);
   if (!d) {
@@ -714,16 +805,31 @@ function viewSettings() {
   if (!i) return head + `<div class="card" style="display:flex;gap:14px;align-items:center"><div class="spinner"></div>Загрузка…</div>`;
   return head + `
     <section class="card" style="display:flex;flex-direction:column;gap:18px">
-      <h2>ADB</h2>
-      <dl class="kv"><dt>Используется</dt><dd class="selectable">${i.adb_path ? esc(i.adb_path) : '<span style="color:var(--high)">не найден</span>'}</dd>
+      <div style="display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap"><h2>ADB</h2>
+        ${i.adb_source ? `<span class="badge ${i.adb_outdated ? 'medium' : 'safe'}">${esc(i.adb_source)}${i.adb_outdated ? ' · устаревший' : ''}</span>` : '<span class="badge high">не найден</span>'}</div>
+      <dl class="kv"><dt>Используется</dt><dd class="selectable mono">${i.adb_path ? esc(i.adb_path) : '—'}</dd>
       <dt>Версия</dt><dd>${esc(i.adb_version || '—')}</dd></dl>
-      <div class="field"><span class="label">Свой путь к adb (пусто — искать автоматически: рядом с AvG, в PATH, в Android SDK)</span>
-        <input id="adb-path" value="${esc(i.custom_adb_path || '')}" placeholder="C:\\platform-tools\\adb.exe" spellcheck="false"></div>
+      ${i.adb_emulator ? `<p class="note" style="color:var(--mid)">${icon('shield', 16)}Это adb из эмулятора. Он работает, но бывает старым и может перезапускать сервер эмулятора. Надёжнее скачать официальный.</p>` : ''}
+      ${S.dl ? downloadProgress() : ''}
       <div style="display:flex;gap:10px;flex-wrap:wrap">
-        ${isTauri ? `<button class="btn" data-act="pick-adb">${icon('folder', 16)}Выбрать файл…</button>` : ''}
-        <button class="btn primary" data-act="save-adb">Сохранить</button>
-        <button class="btn ghost" data-act="reset-adb">Искать автоматически</button>
+        <button class="btn ${i.adb_path && !i.adb_emulator && !i.adb_outdated ? '' : 'primary'}" data-act="download-adb" ${S.dl && !S.dl.error ? 'disabled' : ''}>${icon('download', 16)}${i.adb_source === 'Скачан AvG' ? 'Обновить adb' : 'Скачать свежий adb'}</button>
+        <button class="btn" data-act="find-adb" ${S.adbSearch === 'deep' ? 'disabled' : ''}>${icon('search', 16)}${S.adbSearch === 'deep' ? 'Ищу…' : 'Найти на компьютере'}</button>
       </div>
+      ${S.adbCandidates ? `<div class="card flush" style="background:var(--bg)">
+        ${S.adbCandidates.length ? S.adbCandidates.map((c) => {
+          const cur = c.path === i.adb_path;
+          return `<div class="change"><div class="body"><b>${esc(c.source)} · ${esc(c.version_label)}${c.outdated ? ' <span class="badge medium">устаревший</span>' : ''}</b>
+            <code class="selectable">${esc(c.path)}</code></div>
+            ${cur ? '<span class="badge safe">Используется</span>' : `<button class="btn sm ghost" data-act="use-adb" data-path="${esc(c.path)}">Использовать</button>`}</div>`;
+        }).join('') : '<div class="change"><span class="label">Ни одного adb не найдено</span></div>'}</div>` : ''}
+      <details><summary class="label" style="cursor:pointer;font-size:13px">Указать путь вручную</summary>
+        <div style="display:flex;flex-direction:column;gap:10px;margin-top:12px">
+        <input id="adb-path" class="field-input" value="${esc(i.custom_adb_path || '')}" placeholder="C:\\platform-tools\\adb.exe" spellcheck="false" aria-label="Путь к adb">
+        <div style="display:flex;gap:10px;flex-wrap:wrap">
+          ${isTauri ? `<button class="btn" data-act="pick-adb">${icon('folder', 16)}Выбрать файл…</button>` : ''}
+          <button class="btn primary" data-act="save-adb">Сохранить</button>
+          <button class="btn ghost" data-act="reset-adb">Искать автоматически</button>
+        </div></div></details>
     </section>
     <section class="card" style="display:flex;flex-direction:column;gap:14px">
       <h2>Твики</h2>
@@ -821,6 +927,9 @@ view.addEventListener('click', async (e) => {
       else if (!isTauri) go('settings');
       break;
     }
+    case 'download-adb': downloadAdb(); break;
+    case 'find-adb': findAdb(true); break;
+    case 'use-adb': saveAdbPath(el.dataset.path); break;
     case 'save-adb': saveAdbPath($('#adb-path').value.trim() || null); break;
     case 'reset-adb': saveAdbPath(null); break;
   }
@@ -859,6 +968,8 @@ document.querySelectorAll('.nav-item').forEach((a) => a.addEventListener('click'
 // ───────────────────────── старт ─────────────────────────
 hydrateIcons(document);
 listen('avg://apply', onApplyEvent);
+listen('avg://download', onDownloadEvent);
+loadInfo();
 
 let dragDepth = false;
 onDragDrop((p) => {

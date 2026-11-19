@@ -12,8 +12,12 @@ if errorlevel 1 (
   exit /b 1
 )
 
+rustc -V > build-info.txt 2>&1
+cargo -V >> build-info.txt 2>&1
+rustup show active-toolchain >> build-info.txt 2>&1
+if not defined AVG_JOBS set AVG_JOBS=2
 echo === AvG: сборка (первый раз 3-6 минут, дальше секунды) ===
-powershell -NoProfile -ExecutionPolicy Bypass -Command "$ErrorActionPreference='Continue'; cargo build -p avg 2>&1 | ForEach-Object { \"$_\" } | Tee-Object -FilePath build.log; exit $LASTEXITCODE"
+powershell -NoProfile -ExecutionPolicy Bypass -Command "$ErrorActionPreference='Continue'; cargo build -p avg -j $env:AVG_JOBS 2>&1 | ForEach-Object { \"$_\" } | Tee-Object -FilePath build.log; exit $LASTEXITCODE"
 if errorlevel 1 (
   echo.
   echo [!] Сборка не удалась. Лог сохранён в build.log

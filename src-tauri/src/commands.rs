@@ -6,6 +6,7 @@ use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::Arc;
 
 use avg_core::adb::{DeviceEntry, Shell, ShellOutput};
+use avg_core::discover::{self, Candidate};
 use avg_core::engine::{self, LogLevel};
 use avg_core::packages::{self, AppEntry, PackageAction};
 use avg_core::plan::{self, CategorySummary, PlanItem, ProfileSummary};
@@ -62,6 +63,10 @@ pub struct AppInfo {
     version: String,
     adb_path: Option<String>,
     adb_version: Option<String>,
+    /// Откуда adb: «Android SDK», «Nox», «Скачан AvG»…
+    adb_source: Option<String>,
+    adb_emulator: bool,
+    adb_outdated: bool,
     custom_adb_path: Option<String>,
     data_dir: String,
     tweaks_dir: String,
@@ -71,10 +76,24 @@ pub struct AppInfo {
 
 fn info(st: &AppState) -> AppInfo {
     let adb = st.adb().ok();
+    let ver = adb.as_ref().and_then(|a| discover::probe_version(a.path()));
+    let (source, emulator) = adb
+        .as_ref()
+        .map(|a| discover::classify(a.path(), Some(&st.data_dir)))
+        .map_or((None, false), |(s, e)| (Some(s), e));
     AppInfo {
         version: env!("CARGO_PKG_VERSION").into(),
         adb_path: adb.as_ref().map(|a| a.path().display().to_string()),
-        adb_version: adb.as_ref().and_then(|a| a.version().ok()),
+        adb_version: ver.map(|v| {
+            if v.tools.0 > 0 {
+                format!("{}.{}.{} (протокол 1.0.{})", v.tools.0, v.tools.1, v.tools.2, v.protocol)
+            } else {
+                format!("1.0.{}", v.protocol)
+            }
+        }),
+        adb_source: source,
+        adb_emulator: emulator,
+        adb_outdated: ver.is_some_and(|v| v.protocol < 41),
         custom_adb_path: st.config.lock().unwrap().adb_path.clone(),
         data_dir: st.data_dir.display().to_string(),
         tweaks_dir: st.tweaks_dir.display().to_string(),
@@ -96,6 +115,93 @@ pub async fn set_adb_path(state: St<'_>, path: Option<String>) -> Res<AppInfo> {
         st.config.lock().unwrap().adb_path = path.filter(|p| !p.trim().is_empty());
         st.save_config()?;
         st.reset_adb();
+        Ok(info(&st))
+    })
+    .await
+}
+
+#[derive(Serialize)]
+pub struct DiscoverResult {
+    candidates: Vec<Candidate>,
+    /// Путь, который AvG выбрал сам (если adb до этого не был найден).
+    applied: Option<String>,
+    info: AppInfo,
+}
+
+/// Ищет adb на компьютере. `deep` — дополнительно обойти диски (до ~25 секунд).
+/// Если рабочего adb ещё нет, сразу подключает лучший найденный.
+#[tauri::command]
+pub async fn discover_adb(state: St<'_>, deep: bool) -> Res<DiscoverResult> {
+    let st = state.inner().clone();
+    blocking(move || {
+        let candidates = discover::discover(&st.search_dirs, Some(&st.data_dir), deep);
+        let mut applied = None;
+        if st.adb().is_err() {
+            if let Some(best) = candidates.first() {
+                st.config.lock().unwrap().adb_path = Some(best.path.clone());
+                st.save_config()?;
+                st.reset_adb();
+                applied = Some(best.path.clone());
+            }
+        }
+        Ok(DiscoverResult { candidates, applied, info: info(&st) })
+    })
+    .await
+}
+
+const DOWNLOAD_EVENT: &str = "avg://download";
+
+/// Скачивает официальные Platform-Tools от Google в папку данных AvG.
+#[tauri::command]
+pub async fn download_adb(app: AppHandle, state: St<'_>) -> Res<AppInfo> {
+    let st = state.inner().clone();
+    blocking(move || {
+        use std::io::Read;
+        let _busy = BusyGuard::take(&st.busy)?;
+        let emit = |v: serde_json::Value| {
+            let _ = app.emit(DOWNLOAD_EVENT, v);
+        };
+        emit(json!({ "stage": "connect" }));
+        let fail = |e: String| {
+            format!("Не удалось скачать adb: {e}. Проверьте подключение к интернету или скачайте Platform-Tools вручную с developer.android.com")
+        };
+        let mut resp = ureq::get(discover::platform_tools_url()).call().map_err(|e| fail(e.to_string()))?;
+        let total: Option<u64> = resp
+            .headers()
+            .get("content-length")
+            .and_then(|v| v.to_str().ok())
+            .and_then(|v| v.parse().ok());
+        let mut reader = resp.body_mut().as_reader();
+        let mut data: Vec<u8> = Vec::with_capacity(total.unwrap_or(8 << 20) as usize);
+        let mut chunk = vec![0u8; 64 * 1024];
+        let mut last = 0usize;
+        loop {
+            let n = reader.read(&mut chunk).map_err(|e| fail(e.to_string()))?;
+            if n == 0 {
+                break;
+            }
+            data.extend_from_slice(&chunk[..n]);
+            if data.len() > 300 << 20 {
+                return Err(fail("файл слишком большой".into()));
+            }
+            if data.len() - last >= 256 * 1024 {
+                last = data.len();
+                emit(json!({ "stage": "download", "received": data.len(), "total": total }));
+            }
+        }
+        emit(json!({ "stage": "extract" }));
+        // Если уже работает ранее скачанный adb — останавливаем его, иначе файлы заняты.
+        if let Ok(a) = st.adb() {
+            if a.path().starts_with(&st.data_dir) {
+                let _ = a.run(&["kill-server"]);
+            }
+        }
+        st.reset_adb();
+        let adb_path = discover::install_platform_tools(&data, &st.data_dir).map_err(s)?;
+        st.config.lock().unwrap().adb_path = Some(adb_path.display().to_string());
+        st.save_config()?;
+        st.reset_adb();
+        emit(json!({ "stage": "done" }));
         Ok(info(&st))
     })
     .await

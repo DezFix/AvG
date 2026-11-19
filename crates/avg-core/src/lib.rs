@@ -18,6 +18,7 @@
 //! из GUI, из CLI или из тестов.
 
 pub mod adb;
+pub mod discover;
 pub mod engine;
 pub mod packages;
 pub mod plan;

@@ -9,3 +9,4 @@ Thumbs.db
 .idea/
 .vscode/
 build.log
+build-info.txt

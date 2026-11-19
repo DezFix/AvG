@@ -7,10 +7,7 @@ use serde::Serialize;
 
 use crate::{Error, Result};
 
-#[cfg(windows)]
-const ADB_EXE: &str = "adb.exe";
-#[cfg(not(windows))]
-const ADB_EXE: &str = "adb";
+use crate::discover::ADB_EXE;
 
 /// Результат команды на устройстве.
 #[derive(Debug, Clone, Default, Serialize)]
@@ -81,39 +78,15 @@ impl Adb {
         &self.path
     }
 
-    /// Ищет adb: явный путь → папки рядом с программой → PATH → Android SDK.
+    /// Быстрый поиск adb: явный путь → папки программы → PATH → Android SDK →
+    /// менеджеры пакетов → эмуляторы. Диски не обходит (см. `discover`).
     pub fn locate(custom: Option<&Path>, extra_dirs: &[PathBuf]) -> Result<Self> {
         if let Some(p) = custom {
             let p = if p.is_dir() { p.join(ADB_EXE) } else { p.to_path_buf() };
             return if p.is_file() { Ok(Self::new(p)) } else { Err(Error::AdbNotFound) };
         }
 
-        let mut candidates: Vec<PathBuf> = Vec::new();
-        for d in extra_dirs {
-            candidates.push(d.join("platform-tools").join(ADB_EXE));
-            candidates.push(d.join(ADB_EXE));
-        }
-        if let Some(paths) = std::env::var_os("PATH") {
-            for d in std::env::split_paths(&paths) {
-                candidates.push(d.join(ADB_EXE));
-            }
-        }
-        for var in ["ANDROID_HOME", "ANDROID_SDK_ROOT"] {
-            if let Some(sdk) = std::env::var_os(var) {
-                candidates.push(PathBuf::from(sdk).join("platform-tools").join(ADB_EXE));
-            }
-        }
-        #[cfg(windows)]
-        if let Some(local) = std::env::var_os("LOCALAPPDATA") {
-            candidates.push(
-                PathBuf::from(local)
-                    .join("Android")
-                    .join("Sdk")
-                    .join("platform-tools")
-                    .join(ADB_EXE),
-            );
-        }
-
+        let candidates = crate::discover::known_paths(extra_dirs);
         candidates
             .into_iter()
             .find(|c| c.is_file())

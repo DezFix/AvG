@@ -72,6 +72,8 @@ impl AppState {
         if let Ok(res) = app.path().resource_dir() {
             search_dirs.push(res);
         }
+        // Сюда кладёт adb кнопка «Скачать adb».
+        search_dirs.insert(0, data_dir.clone());
 
         let state = Self {
             config_path,

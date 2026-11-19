@@ -21,10 +21,23 @@ const PLAN = [
 const snaps = [];
 let n = 0;
 
+// ?noadb — показать первый запуск без adb.
+let hasAdb = !location.search.includes('noadb');
+
 export async function invoke(cmd, a) {
   await wait(250);
   switch (cmd) {
-    case 'list_devices': return [{ serial: '7c1a2f9e', state: 'device', model: 'Redmi Note 8', product: 'ginkgo', device: 'ginkgo', transport: 'usb' }];
+    case 'discover_adb': await wait(a.deep ? 2500 : 300); return { candidates: [], applied: null, info: await invoke('app_info') };
+    case 'download_adb': {
+      const total = 7340032;
+      for (let r = 0; r <= total; r += 917504) { emit('avg://download', { stage: 'download', received: r, total }); await wait(250); }
+      emit('avg://download', { stage: 'extract' }); await wait(500);
+      hasAdb = true;
+      return invoke('app_info');
+    }
+    case 'list_devices':
+      if (!hasAdb) throw 'adb не найден. Укажите путь к adb в настройках или положите папку platform-tools рядом с AvG';
+      return [{ serial: '7c1a2f9e', state: 'device', model: 'Redmi Note 8', product: 'ginkgo', device: 'ginkgo', transport: 'usb' }];
     case 'scan_device': await wait(700); return {
       info: { display_name: 'Xiaomi Redmi Note 8', codename: 'ginkgo', android: '11', sdk: 30, rom: 'MIUI 12.5', vendor: 'xiaomi', ram_total_kb: 3794500, ram_available_kb: 943718, storage_total_kb: 54007028, storage_used_kb: 43321568, battery_level: 64, battery_temp_c: 31, packages_total: 312, packages_system: 241, packages_disabled: 9 },
       profiles: [{ id: 'weak', label: 'Слабый телефон', count: 9 }, { id: 'battery', label: 'Батарея', count: 5 }, { id: 'privacy', label: 'Приватность', count: 6 }, { id: 'custom', label: 'Свой набор', count: 14 }],
@@ -61,7 +74,7 @@ export async function invoke(cmd, a) {
     ];
     case 'app_action': return 'ok';
     case 'run_shell': return { stdout: 'Redmi Note 8\n', stderr: '', code: 0 };
-    case 'app_info': return { version: '0.1.0', adb_path: 'C:\\platform-tools\\adb.exe', adb_version: 'Android Debug Bridge version 1.0.41', custom_adb_path: null, data_dir: 'C:\\Users\\you\\AppData\\Roaming\\io.github.dezfix.avg', tweaks_dir: 'C:\\Users\\you\\AppData\\Roaming\\io.github.dezfix.avg\\tweaks', tweaks_count: 39, tweak_warnings: [] };
+    case 'app_info': return { version: '0.1.0', adb_path: hasAdb ? 'C:\\Users\\you\\AppData\\Roaming\\io.github.dezfix.avg\\platform-tools\\adb.exe' : null, adb_version: hasAdb ? '35.0.2 (протокол 1.0.41)' : null, adb_source: hasAdb ? 'Скачан AvG' : null, adb_emulator: false, adb_outdated: false, custom_adb_path: null, data_dir: 'C:\\Users\\you\\AppData\\Roaming\\io.github.dezfix.avg', tweaks_dir: 'C:\\Users\\you\\AppData\\Roaming\\io.github.dezfix.avg\\tweaks', tweaks_count: 39, tweak_warnings: [] };
     case 'set_adb_path': return invoke('app_info');
     default: throw new Error('mock: ' + cmd);
   }

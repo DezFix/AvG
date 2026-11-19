@@ -23,6 +23,8 @@ fn main() {
         .invoke_handler(tauri::generate_handler![
             commands::app_info,
             commands::set_adb_path,
+            commands::discover_adb,
+            commands::download_adb,
             commands::list_devices,
             commands::scan_device,
             commands::get_plan,

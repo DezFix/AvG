@@ -42,7 +42,7 @@
 ## Как пользоваться
 
 1. Скачайте AvG из раздела [Releases](https://github.com/DezFix/AvG/releases).
-2. Скачайте [SDK Platform-Tools](https://developer.android.com/tools/releases/platform-tools) от Google и распакуйте папку `platform-tools` **рядом с AvG**. Подойдёт и adb, который уже есть в `PATH` или Android SDK. Свой путь можно указать в настройках.
+2. Запустите AvG. adb ставить вручную не нужно: при первом запуске программа сама ищет его на компьютере. Она проверяет Android SDK, Chocolatey, Scoop, WinGet и эмуляторы Nox, MuMu, LDPlayer, BlueStacks, MEmu и Genymotion, а затем просматривает диски. Если adb не найдётся, нажмите **«Скачать adb»**: AvG скачает официальный пакет SDK Platform-Tools с dl.google.com (около 7 МБ) в свою папку данных. Путь можно указать и вручную в настройках.
 3. Включите на телефоне отладку по USB:
    - **Настройки → О телефоне** → 7 раз нажмите «Номер сборки». На Xiaomi нажимайте «Версия MIUI/HyperOS».
    - **Настройки → Для разработчиков** → включите «Отладка по USB». На Xiaomi включите ещё «Отладка по USB (настройки безопасности)».

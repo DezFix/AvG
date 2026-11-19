@@ -276,3 +276,11 @@ td { padding: 10px 12px; border-top: 1px solid #1E242C; color: var(--text-2); }
 }
 .sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
 .linkbtn:disabled { opacity: .4; cursor: default; }
+
+.field-input {
+  min-height: 44px; padding: 0 14px; border-radius: 10px; background: var(--bg); border: 1px solid var(--line-2);
+  color: var(--text); font: 500 13px var(--mono); width: 100%; max-width: 640px;
+}
+details > summary { list-style: none; }
+details > summary::before { content: '▸ '; }
+details[open] > summary::before { content: '▾ '; }
