@@ -420,7 +420,7 @@ pub async fn list_apps(state: St<'_>, serial: String) -> Res<Vec<AppEntry>> {
     let st = state.inner().clone();
     blocking(move || {
         let adb = st.adb()?;
-        packages::list(&adb.target(&serial), &st.labels).map_err(s)
+        packages::list(&adb.target(&serial), &st.labels, &st.rules).map_err(s)
     })
     .await
 }

@@ -22,6 +22,7 @@ pub mod discover;
 pub mod engine;
 pub mod packages;
 pub mod plan;
+pub mod safety;
 pub mod scan;
 pub mod snapshot;
 pub mod tweaks;

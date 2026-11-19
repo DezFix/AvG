@@ -29,6 +29,7 @@ pub struct AppState {
     pub tweaks: Vec<Tweak>,
     pub tweak_warnings: Vec<String>,
     pub labels: HashMap<String, String>,
+    pub rules: avg_core::safety::Rules,
     pub store: Mutex<Store>,
     /// Последнее сканирование каждого телефона.
     pub scans: Mutex<HashMap<String, Scan>>,
@@ -54,6 +55,7 @@ impl AppState {
 
         let (tweaks, tweak_warnings) = tweaks::load_with_user_dir(&tweaks_dir)?;
         let labels = packages::known_labels(&tweaks);
+        let rules = avg_core::safety::Rules::new(&tweaks);
 
         let snap_path = data_dir.join("snapshots.json");
         let store = match Store::open(&snap_path) {
@@ -85,6 +87,7 @@ impl AppState {
             tweaks,
             tweak_warnings,
             labels,
+            rules,
             store: Mutex::new(store),
             scans: Mutex::new(HashMap::new()),
             busy: AtomicBool::new(false),

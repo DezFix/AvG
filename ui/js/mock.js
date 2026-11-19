@@ -63,14 +63,16 @@ export async function invoke(cmd, a) {
     case 'revert_snapshot': case 'revert_all': snaps.forEach((s) => s.changes.forEach((c) => (c.reverted = true))); return { ok: true, reverted: 3, failed: 0, log: [] };
     case 'revert_change': snaps.find((s) => s.id === a.snapshot).changes[a.index].reverted = true; return { ok: true, reverted: 1, failed: 0, log: [] };
     case 'list_apps': return [
-      { package: 'org.telegram.messenger', label: 'Telegram', system: false, installed: true, enabled: true, critical: false },
-      { package: 'com.google.android.youtube', label: 'YouTube', system: true, installed: true, enabled: true, critical: false },
-      { package: 'com.miui.videoplayer', label: 'Mi Видео', system: true, installed: true, enabled: false, critical: false },
-      { package: 'com.miui.msa.global', label: 'Рекламная служба MIUI (MSA)', system: true, installed: false, enabled: true, critical: false },
-      { package: 'com.android.systemui', label: 'Системный интерфейс', system: true, installed: true, enabled: true, critical: true },
-      { package: 'com.miui.weather2', label: 'Погода MIUI', system: true, installed: true, enabled: true, critical: false },
-      { package: 'ru.sberbankmobile', label: 'СберБанк Онлайн', system: false, installed: true, enabled: true, critical: false },
-      { package: 'com.xiaomi.joyose', label: null, system: true, installed: true, enabled: true, critical: false },
+      { package: 'org.telegram.messenger', label: 'Telegram', system: false, installed: true, enabled: true, critical: false, safety: 'safe', safety_note: 'Установлено вами или магазином. Удаление ничего в системе не сломает.' },
+      { package: 'com.google.android.youtube', label: 'YouTube', system: true, installed: true, enabled: true, critical: false, safety: 'optional', safety_note: 'YouTube. Смотреть можно и в браузере.' },
+      { package: 'com.miui.videoplayer', label: 'Mi Видео', system: true, installed: true, enabled: false, critical: false, safety: 'optional', safety_note: 'Есть в наборах AvG («Mi Видео»). Удалить можно, если не пользуетесь.' },
+      { package: 'com.miui.msa.global', label: 'Рекламная служба MIUI (MSA)', system: true, installed: false, enabled: true, critical: false, safety: 'safe', safety_note: 'Есть в наборах AvG: известный мусор. Можно удалить.' },
+      { package: 'com.android.systemui', label: 'Системный интерфейс', system: true, installed: true, enabled: true, critical: true, safety: 'critical', safety_note: 'Без этого пакета телефон может не загрузиться или перестать звонить.' },
+      { package: 'android.auto_generated_characteristics_rro', label: null, system: true, installed: true, enabled: true, critical: false, safety: 'keep', safety_note: 'Оверлей: меняет оформление или настройки системы. Не работает в фоне и почти не занимает места — удаление ничего не ускорит, а интерфейс может сломаться.' },
+      { package: 'android.frameworkres.overlay.display.product', label: null, system: true, installed: true, enabled: true, critical: false, safety: 'keep', safety_note: 'Оверлей: меняет оформление или настройки системы.' },
+      { package: 'com.facebook.services', label: null, system: true, installed: true, enabled: true, critical: false, safety: 'safe', safety_note: 'Предустановленный мусор: реклама, аналитика или партнёрское приложение. Можно удалить.' },
+      { package: 'ak.alizandro.smartaudiobookplayer', label: null, system: false, installed: true, enabled: true, critical: false, safety: 'safe', safety_note: 'Установлено вами или магазином. Удаление ничего в системе не сломает.' },
+      { package: 'com.xiaomi.joyose', label: null, system: true, installed: true, enabled: true, critical: false, safety: 'unknown', safety_note: 'AvG не знает этот пакет. Если сомневаетесь — не удаляйте, а отключите: это легко вернуть.' },
     ];
     case 'app_action': return 'ok';
     case 'run_shell': return { stdout: 'Redmi Note 8\n', stderr: '', code: 0 };

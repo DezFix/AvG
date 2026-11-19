@@ -656,6 +656,7 @@ function appTabs() {
     ['all', 'Все', a.filter((x) => x.installed).length],
     ['user', 'Пользовательские', a.filter((x) => x.installed && !x.system).length],
     ['system', 'Системные', a.filter((x) => x.installed && x.system).length],
+    ['safe', 'Можно удалить', a.filter((x) => x.installed && x.system && x.safety === 'safe').length],
     ['off', 'Отключённые', a.filter((x) => x.installed && !x.enabled).length],
     ['removed', 'Удалённые', a.filter((x) => !x.installed).length],
   ];
@@ -668,6 +669,7 @@ function filteredApps() {
       case 'all': if (!x.installed) return false; break;
       case 'user': if (!x.installed || x.system) return false; break;
       case 'system': if (!x.installed || !x.system) return false; break;
+      case 'safe': if (!x.installed || !x.system || x.safety !== 'safe') return false; break;
       case 'off': if (!x.installed || x.enabled) return false; break;
       case 'removed': if (x.installed) return false; break;
     }
@@ -689,11 +691,22 @@ function viewApps() {
         ${appTabs().map(([id, l, n]) => `<button class="pill" role="tab" aria-selected="${S.appsTab === id}" data-act="apps-tab" data-id="${id}">${l}<span class="n">${n}</span></button>`).join('')}
       </div>
     </div>
-    <div class="table-wrap"><table>
-      <thead><tr><th scope="col">Приложение</th><th scope="col">Тип</th><th scope="col">Статус</th><th scope="col">Действия</th></tr></thead>
+    <div class="legend">${Object.values(SAFETY).map(([c, l, d]) => `<span><span class="badge ${c}">${l}</span>${d}</span>`).join('')}</div>
+    <div class="table-wrap"><table class="apps">
+      <colgroup><col><col class="c-safety"><col class="c-status"><col class="c-actions"></colgroup>
+      <thead><tr><th scope="col">Приложение</th><th scope="col">Удаление</th><th scope="col">Статус</th><th scope="col"><span class="sr">Действия</span></th></tr></thead>
       <tbody id="apps-tbody"></tbody></table></div>
-    <p class="label" style="font-size:13px;margin:0">Перетащите файлы .apk в окно, чтобы установить. Названия показываются для известных AvG приложений, у остальных — имя пакета.</p>`;
+    <p class="label" style="font-size:13px;margin:0">Нажмите на оценку, чтобы узнать, почему AvG так считает. Если сомневаетесь — отключайте, а не удаляйте: отключение возвращается одной кнопкой. Перетащите файлы .apk в окно, чтобы установить.</p>`;
 }
+
+// Оценка «можно ли удалить»: класс бейджа, подпись, пояснение для легенды.
+const SAFETY = {
+  safe: ['safe', 'Можно удалить', 'мусор или ваше приложение'],
+  optional: ['info', 'Если не нужно', 'обычное приложение'],
+  unknown: ['muted', 'Неизвестно', 'лучше отключить, чем удалять'],
+  keep: ['medium', 'Не трогать', 'системный компонент'],
+  critical: ['high', 'Нельзя', 'без него телефон не работает'],
+};
 
 function renderAppRows() {
   const tb = $('#apps-tbody');
@@ -707,13 +720,14 @@ function renderAppRows() {
     let actions;
     if (!x.installed) actions = `<button class="btn sm ghost" data-act="pkg" data-a="restore" data-p="${p}">Восстановить</button>`;
     else actions = `
-      ${x.critical ? '<span class="badge medium" title="Без этого пакета телефон может не работать">Важное</span>'
+      ${x.critical ? ''
         : `<button class="btn sm ghost" data-act="pkg" data-a="${x.enabled ? 'disable' : 'enable'}" data-p="${p}">${x.enabled ? 'Отключить' : 'Включить'}</button>`}
       <button class="btn sm ghost icon" aria-label="Сохранить APK" title="Сохранить APK на компьютер" data-act="pull" data-p="${p}">${icon('download', 16)}</button>
       ${x.critical ? '' : `<button class="btn sm danger icon" aria-label="Удалить" title="Удалить" data-act="pkg" data-a="uninstall" data-p="${p}">${icon('trash', 16)}</button>`}`;
     return `<tr><td><div class="app-cell"><span class="avatar" aria-hidden="true" style="background:${avatarColor(x.package)}">${esc(name[0]?.toUpperCase() || '?')}</span>
-      <span class="n"><b>${esc(name)}</b><code class="selectable">${p}</code></span></div></td>
-      <td>${x.system ? 'Системное' : 'Пользовательское'}</td><td><span class="badge ${status[0]}">${status[1]}</span></td>
+      <span class="n"><b title="${esc(name)}">${esc(name)}</b><code class="selectable" title="${p}">${p}</code></span></div></td>
+      <td><button class="badge ${SAFETY[x.safety]?.[0] || 'muted'} why" data-act="why" data-p="${p}" title="${esc(x.safety_note || '')}">${SAFETY[x.safety]?.[1] || '—'}</button></td>
+      <td><span class="badge ${status[0]}">${status[1]}</span></td>
       <td><span class="actions">${actions}</span></td></tr>`;
   }).join('') + (list.length > MAX ? `<tr><td colspan="4" class="label">Показано ${MAX} из ${list.length}. Уточните поиск.</td></tr>` : '')
     + (!list.length ? `<tr><td colspan="4" class="label">Ничего не найдено</td></tr>` : '');
@@ -724,10 +738,17 @@ async function packageAction(pkg, action) {
   const app = S.apps.find((x) => x.package === pkg);
   const name = app?.label || pkg;
   if (action === 'uninstall') {
-    const text = app.system
+    let text = app.system
       ? `«${name}» будет удалено для пользователя. Сам APK останется в системе, вернуть можно здесь же или в «Истории и откате».`
       : `«${name}» будет удалено полностью вместе с данными. Вернуть можно только повторной установкой — при необходимости сначала сохраните APK.`;
-    if (!(await confirmBox({ title: 'Удалить приложение?', text, ok: 'Удалить', danger: true }))) return;
+    const risky = app.system && ['keep', 'unknown'].includes(app.safety);
+    if (app.system && app.safety_note) text = `${app.safety_note}
+
+${text}`;
+    if (risky) text += `
+
+Советуем вместо удаления нажать «Отключить»: если что-то сломается, это проще вернуть.`;
+    if (!(await confirmBox({ title: risky ? 'Точно удалить?' : 'Удалить приложение?', text, ok: 'Удалить', danger: true }))) return;
   }
   if (action === 'disable' && !(await confirmBox({ title: 'Отключить приложение?', text: `«${name}» перестанет запускаться и пропадёт из меню. Включить обратно можно в любой момент.`, ok: 'Отключить' }))) return;
   try {
@@ -911,6 +932,11 @@ view.addEventListener('click', async (e) => {
     case 'reload-apps': S.apps = null; loadApps(); break;
     case 'apps-tab': S.appsTab = el.dataset.id; render(); break;
     case 'pkg': packageAction(el.dataset.p, el.dataset.a); break;
+    case 'why': {
+      const app = S.apps?.find((x) => x.package === el.dataset.p);
+      if (app) confirmBox({ title: `${SAFETY[app.safety]?.[1] || ''}: ${app.label || app.package}`, text: app.safety_note || '', ok: 'Понятно', cancel: '' });
+      break;
+    }
     case 'pull': {
       const pkg = el.dataset.p;
       const dest = await saveApk(`${pkg}.apk`);

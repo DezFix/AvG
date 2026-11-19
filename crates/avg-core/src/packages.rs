@@ -6,6 +6,7 @@ use serde::{Deserialize, Serialize};
 
 use crate::adb::{Shell, ShellOutput};
 use crate::engine::{restore_command, Change};
+use crate::safety::{Rules, Safety};
 use crate::scan::parse_packages;
 use crate::tweaks::{Action, Tweak};
 use crate::{is_valid_package, Error, Result};
@@ -57,6 +58,10 @@ pub struct AppEntry {
     pub installed: bool,
     pub enabled: bool,
     pub critical: bool,
+    /// Можно ли удалить: safe | optional | unknown | keep | critical.
+    pub safety: Safety,
+    /// Почему AvG так считает — показывается пользователю.
+    pub safety_note: String,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
@@ -69,7 +74,7 @@ pub enum PackageAction {
 }
 
 /// Список приложений, включая удалённые для пользователя системные.
-pub fn list(dev: &dyn Shell, labels: &HashMap<String, String>) -> Result<Vec<AppEntry>> {
+pub fn list(dev: &dyn Shell, labels: &HashMap<String, String>, rules: &Rules) -> Result<Vec<AppEntry>> {
     let script = [
         "pm list packages -u",
         "pm list packages",
@@ -88,13 +93,19 @@ pub fn list(dev: &dyn Shell, labels: &HashMap<String, String>) -> Result<Vec<App
     }
     let mut list: Vec<AppEntry> = all
         .union(&installed)
-        .map(|p| AppEntry {
-            package: p.clone(),
-            label: labels.get(p).cloned(),
-            system: system.contains(p) || !installed.contains(p),
-            installed: installed.contains(p),
-            enabled: !disabled.contains(p),
-            critical: is_critical(p),
+        .map(|p| {
+            let is_system = system.contains(p) || !installed.contains(p);
+            let verdict = rules.judge(p, is_system);
+            AppEntry {
+                package: p.clone(),
+                label: labels.get(p).cloned(),
+                system: is_system,
+                installed: installed.contains(p),
+                enabled: !disabled.contains(p),
+                critical: is_critical(p),
+                safety: verdict.level,
+                safety_note: verdict.reason,
+            }
         })
         .collect();
     list.sort_by(|a, b| {
